@@ -3,3 +3,7 @@ __pycache__/
 *.py[cod]
 *.db-journal
 .chrome-test/
+*.db
+static/profiles/
+static/violation_proofs/
+instance/
