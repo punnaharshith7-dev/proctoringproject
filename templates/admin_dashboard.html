@@ -5,7 +5,9 @@
     <title>Admin Overwatch | Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='tilt-effects.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-dialog.css') }}">
     <script src="{{ url_for('static', filename='tilt-effects.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='proctorx-dialog.js') }}" defer></script>
     <style>
         :root { --primary: #23a6d5; --danger: #e73c7e; --dark: #1a1a2e; --sidebar: #1e1e2f; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -149,7 +151,7 @@
             <div class="panel" style="margin-bottom: 20px;">
                 <h3>Search Student Info</h3>
                 <input type="text" id="searchRoll" placeholder="Enter Roll Number">
-                <button class="btn-clear" style="background:var(--primary)" onclick="alert('Searching...')">Search</button>
+                <button class="btn-clear" style="background:var(--primary)" onclick="proctorxAlert('Enter a roll number and use the student profiles directory to locate a record.', { type: 'info', title: 'Student search' })">Search</button>
             </div>
             <div class="panel">
                 <h3>Data Management</h3>
@@ -168,20 +170,20 @@
         }
 
         async function deleteStudent(sid) {
-            if(confirm("Are you sure you want to delete this student? All their exam records and violations will also be removed permanently.")) {
+            if(await proctorxConfirm('This permanently deletes the student profile, exam records, and violation evidence.', { type: 'danger', title: 'Delete student profile', confirmText: 'Delete permanently' })) {
                 const res = await fetch(`/admin/delete_student/${sid}`, { method: 'POST' });
                 const data = await res.json();
                 if(data.status === 'success') {
                     document.getElementById(`student-${sid}`).remove();
-                    alert("Profile deleted successfully.");
+                    await proctorxAlert('The student profile and linked records were removed.', { type: 'success', title: 'Profile deleted' });
                 } else {
-                    alert("Error deleting student.");
+                    await proctorxAlert('The profile could not be deleted. Please try again.', { type: 'danger', title: 'Delete failed' });
                 }
             }
         }
 
-        function clearLogs() {
-            if(confirm("Are you sure? This cannot be undone.")) {
+        async function clearLogs() {
+            if(await proctorxConfirm('This permanently removes all saved violation logs and their evidence images.', { type: 'danger', title: 'Clear violation logs', confirmText: 'Clear logs' })) {
                 fetch('/admin/clear_logs', { method: 'POST' })
                 .then(() => location.reload());
             }

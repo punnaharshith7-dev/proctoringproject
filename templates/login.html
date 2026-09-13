@@ -3,510 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Exam Portal | Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='tilt-effects.css') }}">
-    <script src="{{ url_for('static', filename='tilt-effects.js') }}" defer></script>
-    <script>
-        const savedTheme = localStorage.getItem('portal-theme');
-        const preferredTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        document.documentElement.dataset.theme = savedTheme || preferredTheme;
-    </script>
-    <style>
-        :root {
-            --card-bg: rgba(53, 34, 57, 0.96);
-            --card-border: rgba(255, 255, 255, 0.1);
-            --card-outline: rgba(255, 255, 255, 0.06);
-            --text: #f3f5fb;
-            --muted: #b0b4c8;
-            --tab-bg: rgba(255, 255, 255, 0.08);
-            --tab-active-bg: rgba(255, 255, 255, 0.12);
-            --tab-active-text: #7ec6ff;
-            --input-bg: rgba(255, 255, 255, 0.04);
-            --input-border: rgba(163, 171, 193, 0.22);
-            --input-focus-bg: rgba(255, 255, 255, 0.07);
-            --divider: rgba(255, 255, 255, 0.12);
-            --link: #7fc8ff;
-            --theme-btn-bg: #131722;
-            --theme-btn-text: #f4f7ff;
-            --theme-btn-border: rgba(255, 255, 255, 0.08);
-        }
-
-        html[data-theme='light'] {
-            --card-bg: rgba(246, 244, 248, 0.97);
-            --card-border: rgba(58, 37, 64, 0.1);
-            --card-outline: rgba(58, 37, 64, 0.06);
-            --text: #2a2032;
-            --muted: #6f6177;
-            --tab-bg: rgba(58, 37, 64, 0.07);
-            --tab-active-bg: rgba(255, 255, 255, 0.92);
-            --tab-active-text: #1591c1;
-            --input-bg: rgba(255, 255, 255, 0.75);
-            --input-border: rgba(58, 37, 64, 0.12);
-            --input-focus-bg: rgba(255, 255, 255, 0.96);
-            --divider: rgba(58, 37, 64, 0.1);
-            --link: #1591c1;
-            --theme-btn-bg: #151b27;
-            --theme-btn-text: #f4f7ff;
-            --theme-btn-border: rgba(255, 255, 255, 0.08);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-
-        body {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-            padding: 78px 20px 40px;
-            overflow-x: hidden;
-        }
-
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .login-shell {
-            width: min(780px, 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 26px;
-        }
-
-        .brand-logo {
-            width: min(304px, 40vw);
-            max-width: 304px;
-            height: auto;
-            display: block;
-            filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.18));
-        }
-
-        .login-container {
-            width: min(420px, 100%);
-            position: relative;
-            overflow: hidden;
-            padding: 28px 34px 24px;
-            border-radius: 28px;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            box-shadow: 0 18px 34px rgba(58, 23, 57, 0.18);
-            backdrop-filter: blur(8px);
-            text-align: center;
-        }
-
-        .login-container::before {
-            display: none;
-        }
-
-        .login-container::after {
-            content: "";
-            position: absolute;
-            inset: 12px;
-            border-radius: 22px;
-            border: 1px solid var(--card-outline);
-            pointer-events: none;
-        }
-
-        .login-container > * {
-            position: relative;
-            z-index: 1;
-        }
-
-        .theme-toggle {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            width: auto;
-            padding: 11px 16px;
-            border-radius: 999px;
-            background: var(--theme-btn-bg);
-            color: var(--theme-btn-text);
-            border: 1px solid var(--theme-btn-border);
-            box-shadow: none;
-            font-size: 0.82rem;
-            font-weight: 700;
-            text-transform: none;
-            letter-spacing: 0;
-        }
-
-        .icon-shell {
-            width: 62px;
-            height: 62px;
-            margin: 24px auto 18px;
-            border-radius: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-        }
-
-        .icon {
-            font-size: 34px;
-            line-height: 1;
-        }
-
-        .login-container > .icon {
-            display: none;
-        }
-
-        .tabs {
-            display: flex;
-            background: var(--tab-bg);
-            padding: 6px;
-            border-radius: 999px;
-            margin-bottom: 28px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 12px 14px;
-            border: none;
-            background: transparent;
-            border-radius: 999px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--muted);
-            transition: 0.24s ease;
-        }
-
-        .tab-btn.active {
-            background: var(--tab-active-bg);
-            color: var(--tab-active-text);
-        }
-
-        h2 {
-            color: var(--text);
-            margin-bottom: 28px;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2rem;
-        }
-
-        input {
-            width: 100%;
-            padding: 16px 18px;
-            margin-bottom: 16px;
-            border: 1px solid var(--input-border);
-            border-radius: 18px;
-            outline: none;
-            font-size: 14px;
-            background: var(--input-bg);
-            color: var(--text);
-            transition: 0.25s ease;
-        }
-
-        input::placeholder {
-            color: var(--muted);
-        }
-
-        input:focus {
-            border-color: rgba(62, 194, 221, 0.64);
-            background: var(--input-focus-bg);
-            box-shadow: 0 0 0 3px rgba(62, 194, 221, 0.12);
-        }
-
-        button {
-            width: 100%;
-            padding: 17px;
-            background: linear-gradient(90deg, #2faee2, #31d5b8);
-            color: white;
-            border: none;
-            border-radius: 18px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            box-shadow: 0 14px 26px rgba(49, 213, 184, 0.2);
-            transition: transform 0.22s ease, box-shadow 0.22s ease;
-        }
-
-        button:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 18px 30px rgba(49, 213, 184, 0.26);
-        }
-
-        .admin-btn {
-            background: linear-gradient(90deg, #4b6cb7, #182848);
-            box-shadow: 0 14px 26px rgba(24, 40, 72, 0.24);
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .msg-box {
-            margin-bottom: 16px;
-            padding: 12px 14px;
-            border-radius: 14px;
-            font-size: 0.86rem;
-            line-height: 1.5;
-        }
-
-        .error-text {
-            color: #ffb7bf;
-            background: rgba(255, 92, 111, 0.16);
-        }
-
-        .success-text {
-            color: #9bf1db;
-            background: rgba(35, 213, 171, 0.16);
-        }
-
-        .form-link {
-            margin-top: 16px;
-            font-size: 0.86rem;
-        }
-
-        .forgot-link,
-        .login-links a {
-            color: var(--link);
-            text-decoration: none;
-            font-weight: 700;
-        }
-
-        .login-links {
-            margin-top: 22px;
-            padding-top: 18px;
-            border-top: 1px solid var(--divider);
-        }
-
-        .login-links p {
-            color: var(--muted);
-            font-size: 0.9rem;
-        }
-
-        .note {
-            display: none;
-        }
-
-        .portal-note {
-            margin-top: 20px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--muted);
-            font-size: 0.86rem;
-            font-weight: 700;
-        }
-
-        .note-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: linear-gradient(180deg, #3ab7ef, #4b86ff);
-            box-shadow: 0 0 12px rgba(58, 183, 239, 0.45);
-        }
-
-        .portal-note-subtext {
-            margin-top: 10px;
-            color: var(--muted);
-            font-size: 0.78rem;
-            line-height: 1.6;
-        }
-
-        @media (max-width: 900px) {
-            body {
-                padding-top: 52px;
-            }
-
-            .brand-logo {
-                width: min(280px, 52vw);
-            }
-        }
-
-        @media (max-width: 640px) {
-            body {
-                padding: 24px 14px 28px;
-                align-items: center;
-            }
-
-            .login-shell {
-                gap: 18px;
-            }
-
-            .brand-logo {
-                width: min(220px, 70vw);
-            }
-
-            .login-container {
-                width: 100%;
-                padding: 22px 18px 20px;
-                border-radius: 22px;
-            }
-
-            .theme-toggle {
-                position: static;
-                margin-bottom: 14px;
-                padding: 10px 14px;
-            }
-
-            h2 {
-                font-size: 1.6rem;
-                margin-bottom: 20px;
-            }
-        }
-        body.page-ready { opacity: 1; transform: translateY(0); }
-        body.page-exit { opacity: 0; transform: translateY(8px); }
-        body { transition: opacity 0.28s ease, transform 0.28s ease; }
-        @media (prefers-reduced-motion: reduce) {
-            body, body.page-ready, body.page-exit { transition: none; transform: none; opacity: 1; }
-        }
-    </style>
+    <title>ProctorX | Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-auth.css', v='3') }}">
 </head>
-<body>
-
-    <div class="login-shell">
-        <img
-            src="{{ url_for('static', filename='mgit-logo.png') }}"
-            alt="Mahatma Gandhi Institute of Technology"
-            class="brand-logo"
-        >
-
-        <div class="login-container">
-        <button type="button" class="theme-toggle" onclick="toggleTheme()">Dark Mode</button>
-
-        <div class="icon-shell">
-            <span class="icon" id="portal-icon">&#127891;</span>
-        </div>
-
-        <span class="icon">🎓</span>
-        
-        <div class="tabs">
-            <div class="tab-btn active" onclick="switchTab('student')">Student</div>
-            <div class="tab-btn" onclick="switchTab('teacher')">Teacher</div>
-        </div>
-
-        {% if error %}
-        <div class="msg-box error-text">⚠️ {{ error }}</div>
-        {% endif %}
-
-        {% if success %}
-        <div class="msg-box success-text">✅ {{ success }}</div>
-        {% endif %}
-
-        <form id="student-form" action="/" method="POST">
-            <h2>Student Login</h2>
-            <input type="text" name="user_id" placeholder="Roll Number (Alphanumeric)" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Start Exam</button>
-            <p style="margin-top: 15px; font-size: 0.85rem;">
-                <a href="/forgot_password" class="forgot-link">Forgot Password?</a>
-            </p>
-        </form>
-
-        <form id="teacher-form" action="/" method="POST" class="hidden">
-            <h2>Teacher Portal</h2>
-            <input type="text" name="user_id" placeholder="Username (admin)" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit" class="admin-btn">Admin Login</button>
-        </form>
-
-        <div style="margin-top: 20px; border-top: 1px solid var(--divider); padding-top: 15px;">
-            <p style="font-size: 0.9rem; color: var(--muted);">
-                Don't have an account? 
-                <a href="/register" style="color: var(--link); font-weight: 600; text-decoration: none;">Create User</a>
-            </p>
-        </div>
-        <p class="note">
-            🛡️ <b>Secure Session</b><br>
-            By starting, you consent to real-time AI monitoring of your camera and microphone.
-        </p>
-        <div class="portal-note">
-            <span class="note-dot"></span>
-            <span>Secure Session</span>
-        </div>
-        <p class="portal-note-subtext">
-            By starting, you consent to real-time AI monitoring of your camera and microphone.
-        </p>
-        </div>
-    </div>
-
+<body class="auth-page">
+    <div class="particle-field" aria-hidden="true"></div><div class="cursor-glow" aria-hidden="true"></div>
+    <span class="orb orb-one"></span><span class="orb orb-two"></span><span class="orb orb-three"></span>
+    <main class="auth-layout">
+        <section class="auth-aside">
+            <div class="scan-lines" aria-hidden="true"></div>
+            <a href="/login" class="brand" aria-label="ProctorX home"><img class="brand-logo" src="{{ url_for('static', filename='proctorx-logo.png', v='3') }}" alt=""><span>Proctor<em>X</em></span></a>
+            <div class="aside-copy">
+                <div class="aside-kicker">Smart assessment platform</div>
+                <h1>Confidence in every attempt.</h1>
+                <p>Secure assessments built around real-time monitoring, focused workflows, and clear performance insights.</p>
+            </div>
+            <div class="assurance"><span class="assurance-dot"></span><span class="status-wave" aria-hidden="true"><i></i><i></i><i></i></span>Protected session and live integrity checks</div>
+        </section>
+        <section class="auth-content">
+            <div class="auth-card">
+                <div class="form-eyebrow">Welcome back</div>
+                <h2 id="form-title">Sign in to ProctorX</h2>
+                <p class="form-intro" id="form-intro">Continue your assessment journey with your student account.</p>
+                <div class="role-switch" role="tablist" aria-label="Account type">
+                    <button class="active" id="student-tab" type="button" onclick="switchRole('student')">Student</button>
+                    <button id="admin-tab" type="button" onclick="switchRole('admin')">Administrator</button>
+                </div>
+                {% if error %}<div class="notice error">{{ error }}</div>{% endif %}
+                {% if success %}<div class="notice success">{{ success }}</div>{% endif %}
+                <form id="student-form" action="/login" method="POST">
+                    <div class="field"><label for="student-id">Roll number</label><input id="student-id" type="text" name="user_id" placeholder="Enter your roll number" autocomplete="username" required></div>
+                    <div class="field"><label for="student-password">Password</label><div class="password-field"><input id="student-password" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required><button class="password-toggle" type="button" aria-label="Show password" onclick="togglePassword('student-password', this)">◉</button></div></div>
+                    <button class="primary-button" type="submit">Enter student portal</button>
+                    <div class="form-row"><span>Need help accessing your account?</span><a href="/forgot_password">Reset password</a></div>
+                    <div class="auth-divider">or continue with</div>
+                    <a class="google-signin" href="/auth/google"><span class="google-mark">G</span>Sign in with Google</a>
+                </form>
+                <form id="admin-form" action="/login" method="POST" class="hidden">
+                    <div class="field"><label for="admin-id">Administrator ID</label><input id="admin-id" type="text" name="user_id" placeholder="Enter administrator ID" autocomplete="username" required></div>
+                    <div class="field"><label for="admin-password">Password</label><div class="password-field"><input id="admin-password" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required><button class="password-toggle" type="button" aria-label="Show password" onclick="togglePassword('admin-password', this)">◉</button></div></div>
+                    <button class="primary-button" type="submit">Open command center</button>
+                    <div class="form-row"><span>Admin access is restricted.</span></div>
+                </form>
+                <div class="form-footer">New to ProctorX? <a href="/register">Create your student account</a></div>
+            </div>
+        </section>
+    </main>
     <script>
-        function applyTheme(theme) {
-            document.documentElement.dataset.theme = theme;
-            localStorage.setItem('portal-theme', theme);
-            document.querySelector('.theme-toggle').textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+        function switchRole(role) {
+            const student = role === 'student';
+            document.getElementById('student-form').classList.toggle('hidden', !student);
+            document.getElementById('admin-form').classList.toggle('hidden', student);
+            document.getElementById('student-tab').classList.toggle('active', student);
+            document.getElementById('admin-tab').classList.toggle('active', !student);
+            document.getElementById('form-title').textContent = student ? 'Sign in to ProctorX' : 'Administrator access';
+            document.getElementById('form-intro').textContent = student ? 'Continue your assessment journey with your student account.' : 'Review live sessions, insights, and assessment settings.';
         }
-
-        function toggleTheme() {
-            const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-            applyTheme(nextTheme);
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            const visible = input.type === 'text';
+            input.type = visible ? 'password' : 'text';
+            button.textContent = visible ? '◉' : '◌';
+            button.setAttribute('aria-label', visible ? 'Show password' : 'Hide password');
         }
-
-        function setupInteractiveCard() {}
-
-        function switchTab(role) {
-            const btns = document.querySelectorAll('.tab-btn');
-            const sForm = document.getElementById('student-form');
-            const tForm = document.getElementById('teacher-form');
-            const icon = document.querySelector('.icon');
-
-            if (role === 'student') {
-                btns[0].classList.add('active');
-                btns[1].classList.remove('active');
-                sForm.classList.remove('hidden');
-                tForm.classList.add('hidden');
-                icon.textContent = "🎓";
-            } else {
-                btns[1].classList.add('active');
-                btns[0].classList.remove('active');
-                tForm.classList.remove('hidden');
-                sForm.classList.add('hidden');
-                icon.textContent = "👨‍🏫";
-            }
+        document.querySelectorAll('.field input').forEach((input) => input.addEventListener('input', () => {
+            const field = input.closest('.field');
+            if (!input.value) { field.classList.remove('valid', 'invalid'); return; }
+            field.classList.toggle('valid', input.checkValidity());
+            field.classList.toggle('invalid', !input.checkValidity());
+        }));
+        document.querySelectorAll('form').forEach((form) => form.addEventListener('submit', (event) => {
+            if (!form.checkValidity()) return;
+            form.querySelector('.primary-button').classList.add('loading');
+        }));
+        const particleField = document.querySelector('.particle-field');
+        for (let index = 0; index < 34; index += 1) {
+            const particle = document.createElement('span');
+            particle.className = 'particle';
+            particle.style.left = `${(index * 37) % 100}%`;
+            particle.style.top = `${(index * 61) % 100}%`;
+            particle.style.setProperty('--duration', `${5 + (index % 7)}s`);
+            particle.style.setProperty('--delay', `${-(index % 6)}s`);
+            particle.style.setProperty('--travel-x', `${(index % 2 ? 1 : -1) * (16 + index)}px`);
+            particle.style.setProperty('--travel-y', `${-18 - (index % 5) * 12}px`);
+            particleField.appendChild(particle);
         }
-
-        const baseSwitchTab = switchTab;
-        switchTab = function(role) {
-            baseSwitchTab(role);
-            document.querySelector('.icon').innerHTML = role === 'student' ? '&#127891;' : '&#128105;&#8205;&#127979;';
-        };
-
-        applyTheme(document.documentElement.dataset.theme || 'light');
-        document.querySelector('.icon').innerHTML = '&#127891;';
-    </script>
-    <script>
-        (function () {
-            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const enterPage = () => {
-                document.body.classList.add('page-ready');
-                document.body.classList.remove('page-exit');
-            };
-            window.transitionTo = function (url) {
-                if (!url) return;
-                if (reduceMotion) { window.location.href = url; return; }
-                document.body.classList.remove('page-ready');
-                document.body.classList.add('page-exit');
-                setTimeout(() => { window.location.href = url; }, 220);
-            };
-            document.addEventListener('click', (event) => {
-                const link = event.target.closest('a[href]');
-                if (!link) return;
-                const href = link.getAttribute('href') || '';
-                if (!href || href.startsWith('#') || link.target === '_blank' || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-                const absoluteUrl = new URL(link.href, window.location.href);
-                if (absoluteUrl.origin !== window.location.origin) return;
-                event.preventDefault();
-                transitionTo(absoluteUrl.href);
-            });
-            window.addEventListener('pageshow', enterPage);
-            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', enterPage);
-            else enterPage();
-        })();
+        const layout = document.querySelector('.auth-layout');
+        document.addEventListener('pointermove', (event) => {
+            document.documentElement.style.setProperty('--cursor-x', `${event.clientX}px`);
+            document.documentElement.style.setProperty('--cursor-y', `${event.clientY}px`);
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            const rect = layout.getBoundingClientRect();
+            const tiltX = (event.clientY - rect.top - rect.height / 2) / -55;
+            const tiltY = (event.clientX - rect.left - rect.width / 2) / 55;
+            layout.style.transform = `perspective(1400px) rotateX(${Math.max(-3, Math.min(3, tiltX))}deg) rotateY(${Math.max(-3, Math.min(3, tiltY))}deg)`;
+        });
+        document.addEventListener('pointerleave', () => { layout.style.transform = ''; });
     </script>
 </body>
 </html>

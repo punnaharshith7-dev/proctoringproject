@@ -6,7 +6,9 @@
     <title>Admin Overwatch | Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='tilt-effects.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-dialog.css') }}">
     <script src="{{ url_for('static', filename='tilt-effects.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='proctorx-dialog.js') }}" defer></script>
     <style>
         :root {
             --bg: #f3f7fb;
@@ -583,6 +585,19 @@
         }
 
         @media (max-width: 640px) {
+            #side-nav {
+                padding: 18px 14px;
+            }
+
+            .nav-copy {
+                display: none;
+            }
+
+            .nav-link {
+                margin-bottom: 4px;
+                padding: 12px 14px;
+            }
+
             #content {
                 padding: 18px;
             }
@@ -599,6 +614,23 @@
 
             .chart-shell {
                 height: 260px;
+            }
+
+            /* Preserve every data column without allowing the page itself to overflow. */
+            .panel:has(table) {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .panel:has(table) table {
+                min-width: 650px;
+            }
+
+            .search-row > *,
+            .form-grid .btn-clear,
+            .form-grid a.btn-clear {
+                width: 100%;
+                justify-content: center;
             }
         }
         body.page-ready { opacity: 1; transform: translateY(0); }
@@ -1174,7 +1206,7 @@
         }
 
         async function deleteStudent(sid) {
-            if (confirm("Are you sure you want to delete this student? All their exam records, login history, and violations will be removed permanently.")) {
+            if (await proctorxConfirm('This permanently deletes the student profile, exam records, login history, and violation evidence.', { type: 'danger', title: 'Delete student profile', confirmText: 'Delete permanently' })) {
                 const res = await fetch(`/admin/delete_student/${sid}`, { method: 'POST' });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -1182,9 +1214,9 @@
                     if (row) {
                         row.remove();
                     }
-                    alert("Profile deleted successfully.");
+                    await proctorxAlert('The student profile and linked records were removed.', { type: 'success', title: 'Profile deleted' });
                 } else {
-                    alert("Error deleting student.");
+                    await proctorxAlert('The profile could not be deleted. Please try again.', { type: 'danger', title: 'Delete failed' });
                 }
             }
         }
@@ -1238,7 +1270,7 @@
         }
 
         async function deleteQuestion(id) {
-            if (!confirm("Delete this question from the managed bank?")) return;
+            if (!await proctorxConfirm('This question will be removed from the managed question bank.', { type: 'danger', title: 'Delete question', confirmText: 'Delete question' })) return;
             const res = await fetch(`/admin/question_bank/${id}/delete`, { method: 'POST' });
             const data = await res.json();
             if (data.status === 'success') {
@@ -1254,25 +1286,25 @@
             });
             const data = await res.json();
             if (data.status !== 'success') {
-                alert(data.message || 'Could not update decision.');
+                await proctorxAlert(data.message || 'Could not update the review decision.', { type: 'danger', title: 'Decision update failed' });
             }
         }
 
-        function clearLogs() {
-            if (confirm("Are you sure? This cannot be undone.")) {
+        async function clearLogs() {
+            if (await proctorxConfirm('This permanently removes all saved violation logs and their evidence images.', { type: 'danger', title: 'Clear violation logs', confirmText: 'Clear logs' })) {
                 fetch('/admin/clear_logs', { method: 'POST' })
                     .then(() => location.reload());
             }
         }
 
-        function searchStudent() {
+        async function searchStudent() {
             const rollInput = document.getElementById('searchRoll');
             const roll = rollInput.value.trim().toUpperCase();
 
             document.querySelectorAll('#profiles tbody tr').forEach(row => row.classList.remove('row-highlight'));
 
             if (!roll) {
-                alert("Enter a roll number to search.");
+                await proctorxAlert('Enter a roll number to search the registered student directory.', { type: 'warning', title: 'Roll number required' });
                 return;
             }
 
@@ -1283,7 +1315,7 @@
                 row.classList.add('row-highlight');
                 row.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
-                alert("No student found for that roll number.");
+                await proctorxAlert('No registered student matches that roll number.', { type: 'info', title: 'Student not found' });
             }
         }
 

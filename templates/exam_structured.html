@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ exam_payload.paper_title }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <script>
+        document.documentElement.dataset.theme = localStorage.getItem('portal-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='tilt-effects.css') }}">
     <script src="{{ url_for('static', filename='tilt-effects.js') }}" defer></script>
@@ -26,6 +29,12 @@
             --ok-soft:rgba(24,160,127,.12);
             --shadow:0 20px 45px rgba(15,32,56,.12);
         }
+        html[data-theme='dark']{
+            --bg:#061426;--bg-soft:#0a1c36;--panel:rgba(7,20,39,.78);--panel-strong:rgba(7,20,39,.94);
+            --line:rgba(180,214,255,.18);--text:#eaf3ff;--muted:#a7b6cb;--primary:#4ee6ff;--primary-strong:#8ca4ff;
+            --teal:#72f4c8;--gold:#ffd36c;--danger:#ff839d;--danger-soft:rgba(255,131,157,.12);--ok-soft:rgba(114,244,200,.12);
+            --shadow:0 24px 64px rgba(0,0,0,.3)
+        }
         *{box-sizing:border-box;margin:0;padding:0}
         html,body{min-height:100%;height:100%}
         body{
@@ -37,9 +46,21 @@
                 radial-gradient(circle at bottom right, rgba(24,160,127,.08), transparent 18%),
                 linear-gradient(160deg, #f7fbff 0%, #f4f7f6 45%, #eef4fb 100%);
             height:100vh;
-            overflow:hidden;
+            overflow:visible;
             transition:opacity .28s ease, transform .28s ease;
         }
+        html[data-theme='dark'] body{background:radial-gradient(circle at top left, rgba(61,168,255,.24), transparent 24%),radial-gradient(circle at bottom right, rgba(135,87,255,.18), transparent 22%),linear-gradient(130deg,#07192f 0%,#071126 45%,#100d2d 100%)}
+        html[data-theme='dark'] #permission-shield{background:rgba(4,13,29,.96)}
+        html[data-theme='dark'] .gateway-shell,html[data-theme='dark'] .gateway-side,html[data-theme='dark'] #sidebar,html[data-theme='dark'] #top-nav,html[data-theme='dark'] #progress-rail{background:rgba(7,20,39,.88);border-color:var(--line)}
+        html[data-theme='dark'] .kpi-card,html[data-theme='dark'] .check-card,html[data-theme='dark'] .status-card,html[data-theme='dark'] .violation-score,html[data-theme='dark'] .top-bar-card,html[data-theme='dark'] .rail-card,html[data-theme='dark'] .chip,html[data-theme='dark'] .question-card,html[data-theme='dark'] .opt,html[data-theme='dark'] input[type=text]{background:rgba(255,255,255,.055);border-color:var(--line)}
+        /* Large containers use explicit light backgrounds in the base exam CSS. Override them as a set. */
+        html[data-theme='dark'] .panel,html[data-theme='dark'] .section-card,html[data-theme='dark'] .review,html[data-theme='dark'] .summary-chip,html[data-theme='dark'] .modal{background:rgba(7,20,39,.88)!important;border-color:var(--line)!important;box-shadow:var(--shadow)!important}
+        html[data-theme='dark'] .question-card,html[data-theme='dark'] .review-item,html[data-theme='dark'] .opt{background:rgba(255,255,255,.045)!important;border-color:rgba(180,214,255,.14)!important}
+        html[data-theme='dark'] #exam-paper{background:rgba(4,13,29,.28)}
+        html[data-theme='dark'] .toast{background:rgba(7,20,39,.98);border-color:var(--line);color:var(--text)}
+        html[data-theme='dark'] .secondary{color:#dff7ff;background:rgba(255,255,255,.07);border-color:var(--line)}
+        html[data-theme='dark'] .scan-stage{background:rgba(255,255,255,.04);border-color:var(--line)}
+        html[data-theme='dark'] .trust-badge::before{background:rgba(7,20,39,.95);border-color:var(--line)}
         body.page-ready{opacity:1;transform:translateY(0)}
         body.page-exit{opacity:0;transform:translateY(8px)}
         #submit-modal,#result-screen{position:fixed;inset:0;z-index:2000}
@@ -63,7 +84,7 @@
             margin:0 auto
         }
         .gateway-shell > *{min-height:0}
-        .gateway-main,.gateway-side{padding:24px;min-height:0;overflow:hidden}
+        .gateway-main,.gateway-side{padding:24px;min-height:0;overflow:visible}
         .gateway-main{
             background:
                 linear-gradient(145deg, rgba(35,166,213,.08), transparent 45%),
@@ -269,10 +290,60 @@
             flex-direction:column;
             align-items:flex-start;
             justify-content:flex-start;
-            background:linear-gradient(180deg,#f7fbff 0%,#eef4fb 100%);
+            color:#eaf3ff;
+            background:
+                radial-gradient(circle at 12% 14%, rgba(61,168,255,.32), transparent 24rem),
+                radial-gradient(circle at 88% 82%, rgba(135,87,255,.24), transparent 28rem),
+                linear-gradient(130deg,#07192f 0%,#071126 45%,#100d2d 100%);
             overflow:auto;
             padding:24px
         }
+        #result-screen::before{
+            content:"";position:fixed;inset:0;pointer-events:none;opacity:.18;
+            background-image:linear-gradient(rgba(145,210,255,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(145,210,255,.18) 1px,transparent 1px);
+            background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 82%)
+        }
+        #result-screen .shell{position:relative;z-index:1;width:min(1040px,100%);padding:34px 0 52px}
+        #result-screen .panel,#result-screen .review,#result-screen .summary-chip{
+            border-color:rgba(180,214,255,.18);background:rgba(7,20,39,.78);
+            box-shadow:0 28px 80px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(24px)
+        }
+        #result-screen .panel{padding:clamp(24px,5vw,48px)}
+        #result-screen .panel h1,#result-screen .review h2{color:#eef6ff}
+        #result-screen .muted{color:#a7b6cb}
+        #result-screen .score{background:rgba(5,17,35,.74);border-color:rgba(78,230,255,.32);box-shadow:0 0 0 12px rgba(78,230,255,.04),0 0 44px rgba(78,230,255,.15)}
+        #result-screen .score strong{color:#72f4c8;text-shadow:0 0 22px rgba(114,244,200,.34)}
+        #result-screen .summary-chip{box-shadow:none}
+        #result-screen .review-item{border-color:rgba(180,214,255,.12);background:rgba(255,255,255,.045)}
+        #result-screen a.primary{color:#061426;background:linear-gradient(100deg,#4ee6ff,#8ca4ff);box-shadow:0 14px 26px rgba(78,183,255,.24)}
+        #result-screen a.secondary{color:#ccecff;border-color:rgba(183,214,255,.14);background:rgba(255,255,255,.07)}
+        .result-brand{display:inline-flex;align-items:center;gap:10px;margin-bottom:24px;color:#fff;font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700}
+        .result-brand span{color:#4ee6ff}
+        .result-brand small{margin-left:8px;color:#a7b6cb;font-family:'Plus Jakarta Sans',sans-serif;font-size:.64rem;letter-spacing:.16em}
+        .theme-toggle{border:1px solid rgba(137,160,188,.2);border-radius:14px;padding:11px 14px;background:rgba(255,255,255,.7);color:var(--text);font:inherit;font-weight:700;cursor:pointer}
+        html[data-theme='dark'] .theme-toggle{background:rgba(255,255,255,.07);border-color:var(--line);color:#eaf3ff}
+        html:not([data-theme='dark']) #result-screen{color:#1f2a36;background:radial-gradient(circle at 12% 10%, rgba(40,148,239,.18), transparent 24rem),linear-gradient(145deg,#f7fbff 0%,#e9f3ff 100%)}
+        html:not([data-theme='dark']) #result-screen::before{opacity:.08}
+        html:not([data-theme='dark']) #result-screen .panel,html:not([data-theme='dark']) #result-screen .review,html:not([data-theme='dark']) #result-screen .summary-chip{border-color:rgba(137,160,188,.18);background:rgba(255,255,255,.88);box-shadow:var(--shadow)}
+        html:not([data-theme='dark']) #result-screen .panel h1,html:not([data-theme='dark']) #result-screen .review h2{color:#1f2a36}
+        html:not([data-theme='dark']) #result-screen .muted{color:#66768d}
+        html:not([data-theme='dark']) #result-screen .score{background:rgba(255,255,255,.92);border-color:rgba(24,160,127,.2);box-shadow:0 0 0 12px rgba(35,166,213,.04),0 0 44px rgba(35,166,213,.12)}
+        html:not([data-theme='dark']) #result-screen .score strong{color:#18a07f;text-shadow:none}
+        html:not([data-theme='dark']) #result-screen .review-item{border-color:rgba(137,160,188,.14);background:rgba(248,251,255,.78)}
+        html:not([data-theme='dark']) .result-brand{color:#10213b}
+        html:not([data-theme='dark']) .result-brand small{color:#66768d}
+        .result-actions{justify-content:center;margin-top:24px!important}
+        #result-screen .result-action{
+            display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border-radius:14px;font-size:.9rem;font-weight:800;letter-spacing:.01em;text-decoration:none;line-height:1;
+            transition:transform .2s ease,box-shadow .2s ease,filter .2s ease
+        }
+        #result-screen .result-action:hover{transform:translateY(-2px)}
+        #result-screen .dashboard-action{color:#dff7ff;border:1px solid rgba(117,218,255,.3);background:rgba(78,230,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+        #result-screen .dashboard-action:hover{background:rgba(78,230,255,.16);box-shadow:0 12px 26px rgba(32,183,235,.16)}
+        #result-screen .exit-action{color:#061426;background:linear-gradient(100deg,#4ee6ff,#8ca4ff);box-shadow:0 14px 26px rgba(78,183,255,.28)}
+        #result-screen .exit-action:hover{filter:brightness(1.06);box-shadow:0 18px 34px rgba(78,183,255,.38)}
+        html:not([data-theme='dark']) #result-screen .dashboard-action{color:#14527c;border-color:rgba(22,127,224,.24);background:rgba(22,127,224,.08)}
+        html:not([data-theme='dark']) #result-screen .exit-action{background:linear-gradient(100deg,#2cc7e8,#538cff)}
         .score{
             width:176px;height:176px;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;
             margin:18px auto;background:rgba(255,255,255,.92);border:10px solid rgba(24,160,127,.18)
@@ -329,6 +400,23 @@
             .section-head,.question-tools{flex-direction:column;align-items:flex-start}
             .actions button,.section-actions button{width:100%}
             .progress-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+        }
+        @media(max-width:480px){
+            #permission-shield{padding:10px}
+            .gateway-main,.gateway-side,#sidebar,#exam-paper{padding:14px}
+            .gateway-main h1{font-size:1.8rem}
+            .gateway-kpis{grid-template-columns:1fr}
+            .camera-stage{min-height:190px}
+            .top-bar-grid{gap:8px}
+            .timer-wrap{width:100%}
+            .timer-wrap .timer{width:100%;text-align:center}
+            .question-card{padding:16px}
+            .option{min-height:46px}
+            .progress-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+            #result-screen{padding:14px}
+            #result-screen .shell{padding:16px 0 34px}
+            .result-brand{font-size:1.1rem}
+            .result-brand small{display:none}
         }
         @media (prefers-reduced-motion: reduce) {
             *, body, body.page-ready, body.page-exit { transition:none !important; animation:none !important; transform:none !important; scroll-behavior:auto !important; }
@@ -390,14 +478,6 @@
                             <div class="check-status pending" id="check-fullscreen">Pending</div>
                         </div>
                     </div>
-                </div>
-                <div class="face-verify-shell" style="display:none;">
-                    <div class="eyebrow" style="margin-bottom:10px;">Face Verification</div>
-                    <div id="scan-stage" class="scan-stage">
-                        <div class="scan-line"></div>
-                        <div class="scan-face">◎</div>
-                    </div>
-                    <p id="face-status" class="scan-caption">Face verification pending.</p>
                 </div>
             </div>
             <div class="gateway-side">
@@ -488,6 +568,7 @@
                 </div>
             </div>
             <div class="actions" style="justify-content:flex-end;">
+                <button class="theme-toggle" type="button" onclick="toggleTheme()">Dark Mode</button>
                 <button class="secondary" type="button" onclick="enableFullscreen()">Fullscreen</button>
                 <button class="primary" id="submit-btn" onclick="confirmSubmit()">Submit Exam</button>
             </div>
@@ -539,15 +620,16 @@
 
     <div id="result-screen">
         <div class="shell">
+            <div class="result-brand">Proctor<span>X</span><small>ASSESSMENT REPORT</small><button class="theme-toggle" type="button" onclick="toggleTheme()">Dark Mode</button></div>
             <div class="panel" style="text-align:center">
                 <h1 id="result-title">Assessment Submitted</h1>
                 <div class="score"><strong id="final-score">0</strong><span id="score-total">/ 50</span></div>
                 <p class="muted" id="result-risk-copy">Section-wise performance and question analysis are shown below.</p>
                 <div class="summary-grid" id="section-summary"></div>
                 <div class="summary-grid" id="suggestion-summary" style="margin-top:16px;"></div>
-                <div class="actions" style="justify-content:center;margin-top:18px;">
-                    <a class="secondary" href="{{ url_for('student_dashboard') }}">Back to Dashboard</a>
-                    <a class="primary" href="{{ url_for('logout') }}">Exit Portal</a>
+                <div class="actions result-actions">
+                    <a class="result-action dashboard-action" href="{{ url_for('student_dashboard') }}">Back to Dashboard</a>
+                    <a class="result-action exit-action" href="{{ url_for('logout') }}">Exit Portal</a>
                 </div>
             </div>
             <div id="analysis-container"></div>
@@ -555,6 +637,18 @@
     </div>
 
     <script>
+        function applyTheme(theme) {
+            document.documentElement.dataset.theme = theme;
+            localStorage.setItem('portal-theme', theme);
+            document.querySelectorAll('.theme-toggle').forEach(button => {
+                button.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+            });
+        }
+
+        function toggleTheme() {
+            applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+        }
+
         const socket = window.io ? io() : {
             emit() {},
             on() {},
@@ -563,6 +657,7 @@
         if (!window.io) {
             console.warn('Socket.IO client was not available. Proctoring events will be disabled, but the exam UI will still work.');
         }
+        applyTheme(document.documentElement.dataset.theme || 'light');
         const examPayload = {{ exam_payload|tojson }};
         const resumeState = {{ resume_state|tojson }};
         const studentInfo = "{{ student_id }} - {{ student_name }}";
@@ -1231,12 +1326,13 @@
                 const canvas = document.createElement('canvas');
                 const sourceWidth = Math.max(1, video.videoWidth || 320);
                 const sourceHeight = Math.max(1, video.videoHeight || 240);
-                const targetWidth = Math.min(480, sourceWidth);
+                // Retain enough detail for the server-side model to see handheld objects.
+                const targetWidth = Math.min(640, sourceWidth);
                 const targetHeight = Math.max(1, Math.round(sourceHeight * (targetWidth / sourceWidth)));
                 canvas.width = targetWidth;
                 canvas.height = targetHeight;
                 canvas.getContext('2d').drawImage(video, 0, 0, targetWidth, targetHeight);
-                latestEvidenceFrame = canvas.toDataURL('image/jpeg', 0.65);
+                latestEvidenceFrame = canvas.toDataURL('image/jpeg', 0.82);
             }
             return latestEvidenceFrame;
         }
@@ -1280,7 +1376,7 @@
                 const image = getEvidenceFrame();
                 if (!image) return;
                 socket.emit('video_frame', { image, student_info: studentInfo });
-            }, 1200);
+            }, 1500);
         }
 
         function startLiveStatus() {

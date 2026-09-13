@@ -14,8 +14,15 @@ import binascii
 import csv
 import io
 import tempfile
+import secrets
+import smtplib
+from email.message import EmailMessage
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request as UrlRequest, urlopen
 from datetime import datetime, timedelta
 from pathlib import Path
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, session, redirect, url_for, jsonify, abort, send_file, make_response
 from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -29,9 +36,20 @@ from question_bank import (
     grade_exam_submission_from_paper,
 )
 
+load_dotenv(Path(__file__).resolve().parent / ".env", override=True)
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "change-this-secret-in-production")
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+configured_secret = os.environ.get("SECRET_KEY")
+app.secret_key = configured_secret or secrets.token_urlsafe(32)
+if not configured_secret:
+    app.logger.warning("SECRET_KEY is not set; generated a temporary local session secret.")
+app.config.update(
+    MAX_CONTENT_LENGTH=8 * 1024 * 1024,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "").strip().lower() in {"1", "true", "yes", "on"},
+)
+socketio = SocketIO(app, cors_allowed_origins=os.environ.get("SOCKETIO_CORS_ORIGINS"), async_mode='eventlet')
 
 # --- CONFIGURATION ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -51,10 +69,19 @@ ADMIN_SIDS = set()
 STUDENT_SIDS = {}
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "ADMIN")
 ADMIN_INITIAL_PASSWORD = os.environ.get("ADMIN_INITIAL_PASSWORD")
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
+GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "").strip()
+SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+MAIL_FROM = os.environ.get("MAIL_FROM", SMTP_USERNAME).strip()
 RUN_HOST = os.environ.get("HOST", "0.0.0.0")
 RUN_PORT = int(os.environ.get("PORT", "5000"))
 RUN_DEBUG = os.environ.get("FLASK_DEBUG", "").strip().lower() in {"1", "true", "yes", "on"}
-DETECTION_FRAME_WIDTH = max(256, int(os.environ.get("DETECTION_FRAME_WIDTH", "320")))
+# Small objects such as phones disappear at 320px, especially on mobile-camera frames.
+DETECTION_FRAME_WIDTH = max(480, int(os.environ.get("DETECTION_FRAME_WIDTH", "512")))
 MODEL_LOAD_RETRY_SECONDS = max(10, int(os.environ.get("MODEL_LOAD_RETRY_SECONDS", "60")))
 VIOLATION_AUTO_SUBMIT_SCORE = 20
 SECTION_ORDER = ["section_a", "section_b", "section_c"]
@@ -100,6 +127,93 @@ if not os.path.exists(VIOLATION_PROOF_FOLDER):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def is_valid_profile_image(uploaded_file):
+    try:
+        uploaded_file.stream.seek(0)
+        with Image.open(uploaded_file.stream) as image:
+            image.verify()
+        uploaded_file.stream.seek(0)
+        return True
+    except Exception:
+        uploaded_file.stream.seek(0)
+        return False
+
+
+def normalize_email_address(value):
+    email = str(value or "").strip().lower()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email) or len(email) > 254:
+        return None
+    return email
+
+
+def selected_recovery_methods(value):
+    return {method for method in str(value or "").split(",") if method in {"phone", "email"}}
+
+
+def send_password_reset_otp(recipient, code):
+    if not all((SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, MAIL_FROM)):
+        raise RuntimeError("Email OTP is not configured yet. Add SMTP settings to your local .env file.")
+
+    message = EmailMessage()
+    message["Subject"] = "Your ProctorX password reset code"
+    message["From"] = MAIL_FROM
+    message["To"] = recipient
+    message.set_content(
+        f"Your ProctorX password reset code is: {code}\n\n"
+        "This code expires in 10 minutes. If you did not request it, you can ignore this email."
+    )
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as smtp:
+        smtp.starttls()
+        smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
+        smtp.send_message(message)
+
+
+def get_socket_student_id():
+    if session.get("role") != "student":
+        return None
+    return session.get("user_id")
+
+
+def google_oauth_enabled():
+    return bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+
+
+def get_google_redirect_uri():
+    return GOOGLE_REDIRECT_URI or url_for("google_callback", _external=True)
+
+
+def exchange_google_code(code, redirect_uri):
+    payload = urlencode({
+        "code": code,
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+    }).encode("utf-8")
+    token_request = UrlRequest(
+        "https://oauth2.googleapis.com/token",
+        data=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    with urlopen(token_request, timeout=12) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def verify_google_identity(id_token_value):
+    from google.auth.transport import requests as google_requests
+    from google.oauth2 import id_token
+
+    identity = id_token.verify_oauth2_token(
+        id_token_value,
+        google_requests.Request(),
+        GOOGLE_CLIENT_ID,
+    )
+    if not identity.get("sub") or not identity.get("email") or not identity.get("email_verified"):
+        raise ValueError("Google did not return a verified email address.")
+    return identity
 
 
 def normalize_student_identifier(student_id):
@@ -673,10 +787,17 @@ def init_db():
         ensure_column_exists(c, "results", "attempt_number", "attempt_number INTEGER DEFAULT 1")
         ensure_column_exists(c, "results", "admin_decision", "admin_decision TEXT DEFAULT 'pending'")
         ensure_column_exists(c, "results", "decision_notes", "decision_notes TEXT")
+        ensure_column_exists(c, "users", "email", "email TEXT")
+        ensure_column_exists(c, "users", "recovery_methods", "recovery_methods TEXT")
+        ensure_column_exists(c, "users", "google_sub", "google_sub TEXT")
+        ensure_column_exists(c, "users", "google_email", "google_email TEXT")
         ensure_column_exists(c, "violations", "evidence_path", "evidence_path TEXT")
         ensure_column_exists(c, "violations", "severity", "severity TEXT DEFAULT 'low'")
         ensure_column_exists(c, "violations", "score", "score INTEGER DEFAULT 0")
         ensure_column_exists(c, "violations", "created_at", "created_at TEXT")
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub ON users(google_sub) WHERE google_sub IS NOT NULL")
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_email ON users(google_email) WHERE google_email IS NOT NULL")
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email COLLATE NOCASE) WHERE email IS NOT NULL")
         c.execute("""
             INSERT OR IGNORE INTO exam_settings
             (id, one_attempt_only, retake_allowed, max_attempts, cooldown_minutes, face_match_threshold, exam_duration_minutes)
@@ -882,8 +1003,8 @@ def build_student_badges(student_results, latest_risk, latest_trend, student_ran
 def login():
     if request.method == 'POST':
         # All IDs are treated as Uppercase for consistency
-        uid = request.form.get('user_id').strip().upper()
-        pwd = request.form.get('password')
+        uid = request.form.get('user_id', '').strip().upper()
+        pwd = request.form.get('password', '')
         with get_db_connection() as conn:
             user = conn.execute("SELECT * FROM users WHERE id=?", (uid,)).fetchone()
         
@@ -901,7 +1022,140 @@ def login():
             else:
                 return redirect(url_for('student_dashboard'))
         return render_template('login.html', error="Invalid Credentials")
-    return render_template('login.html')
+    return render_template('login.html', error=request.args.get("google_error", ""))
+
+
+@app.route('/auth/google')
+def google_login():
+    if not google_oauth_enabled():
+        return redirect(url_for('login', google_error='Google sign-in is not configured yet. Add the Google OAuth credentials to enable it.'))
+
+    state = secrets.token_urlsafe(32)
+    redirect_uri = get_google_redirect_uri()
+    session['google_oauth_state'] = state
+    session['google_redirect_uri'] = redirect_uri
+    params = urlencode({
+        'client_id': GOOGLE_CLIENT_ID,
+        'redirect_uri': redirect_uri,
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'state': state,
+        'prompt': 'select_account',
+    })
+    return redirect(f'https://accounts.google.com/o/oauth2/v2/auth?{params}')
+
+
+@app.route('/auth/google/callback')
+def google_callback():
+    state = request.args.get('state', '')
+    expected_state = session.pop('google_oauth_state', '')
+    redirect_uri = session.pop('google_redirect_uri', '') or get_google_redirect_uri()
+    if not state or not expected_state or not secrets.compare_digest(state, expected_state):
+        return redirect(url_for('login', google_error='Google sign-in could not verify this session. Please try again.'))
+
+    if request.args.get('error'):
+        return redirect(url_for('login', google_error='Google sign-in was cancelled or denied.'))
+
+    code = request.args.get('code', '')
+    if not code:
+        return redirect(url_for('login', google_error='Google did not return an authorization code.'))
+
+    try:
+        token_data = exchange_google_code(code, redirect_uri)
+        identity = verify_google_identity(token_data.get('id_token', ''))
+    except HTTPError as error:
+        app.logger.warning('Google token exchange failed with HTTP status %s.', error.code)
+        return redirect(url_for('login', google_error='Google rejected the OAuth client configuration. Check the Client Secret in your local .env file, then try again.'))
+    except URLError:
+        app.logger.warning('Google token verification could not reach Google services.')
+        return redirect(url_for('login', google_error='ProctorX could not reach Google to verify your sign-in. Check your internet connection and try again.'))
+    except (ValueError, ImportError) as error:
+        app.logger.warning('Google identity verification failed: %s', type(error).__name__)
+        return redirect(url_for('login', google_error='Google returned an identity response ProctorX could not verify. Please try again.'))
+    except Exception:
+        app.logger.exception('Unexpected Google sign-in failure')
+        return redirect(url_for('login', google_error='Google sign-in is temporarily unavailable. Please try again.'))
+
+    google_email = identity['email'].strip().lower()
+    with get_db_connection() as conn:
+        user = conn.execute('SELECT * FROM users WHERE google_sub=?', (identity['sub'],)).fetchone()
+        email_account = conn.execute(
+            'SELECT id FROM users WHERE google_email=? OR email=? COLLATE NOCASE',
+            (google_email, google_email),
+        ).fetchone()
+
+        if user:
+            conn.execute(
+                'INSERT INTO login_activity (user_id, role, login_at) VALUES (?, ?, ?)',
+                (user['id'], 'student', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+            )
+            conn.commit()
+            session.clear()
+            session['user_id'], session['name'], session['role'] = user['id'], user['name'], 'student'
+            return redirect(url_for('student_dashboard'))
+
+        if email_account:
+            return redirect(url_for('login', google_error='An account already exists for this Google email. Use its existing sign-in method.'))
+
+    session['google_pending_profile'] = {
+        'sub': identity['sub'],
+        'email': google_email,
+        'name': str(identity.get('name') or google_email.split('@')[0]).strip()[:80],
+    }
+    return redirect(url_for('complete_google_profile'))
+
+
+@app.route('/auth/google/complete-profile', methods=['GET', 'POST'])
+def complete_google_profile():
+    pending_profile = session.get('google_pending_profile')
+    if not pending_profile:
+        return redirect(url_for('login', google_error='Start with Google sign-in before completing a profile.'))
+
+    if request.method == 'GET':
+        return render_template('google_profile.html', google_profile=pending_profile)
+
+    name = request.form.get('name', '').strip()
+    user_id = request.form.get('userid', '').strip().upper()
+    branch = request.form.get('branch', '').strip()
+    semester = request.form.get('semester', '').strip()
+    phone = request.form.get('phone', '').strip()
+    file = request.files.get('profile_pic')
+
+    if not name or not user_id or not branch or not is_valid_semester(semester) or not phone:
+        return jsonify({'status': 'error', 'message': 'Complete every required profile field before continuing.'}), 400
+    if not re.match(r'^[A-Z0-9]{10}$', user_id):
+        return jsonify({'status': 'error', 'message': 'Roll Number must be exactly 10 alphanumeric characters.'}), 400
+    if not file or not file.filename or not allowed_file(file.filename) or not is_valid_profile_image(file):
+        return jsonify({'status': 'error', 'message': 'Upload a valid PNG, JPG, or JPEG profile photo.'}), 400
+
+    extension = file.filename.rsplit('.', 1)[1].lower()
+    filename = secure_filename(f'{user_id}_profile.{extension}')
+    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+    try:
+        with get_db_connection() as conn:
+            if conn.execute('SELECT id FROM users WHERE id=?', (user_id,)).fetchone():
+                return jsonify({'status': 'error', 'message': 'That roll number is already registered.'}), 400
+            if conn.execute('SELECT id FROM users WHERE google_sub=? OR google_email=?', (pending_profile['sub'], pending_profile['email'])).fetchone():
+                return jsonify({'status': 'error', 'message': 'This Google account is already linked to a ProctorX profile.'}), 400
+            conn.execute('''
+                INSERT INTO users (id, name, password, role, branch, semester, phone, profile_pic, google_sub, google_email)
+                VALUES (?, ?, ?, 'student', ?, ?, ?, ?, ?, ?)
+            ''', (
+                user_id, name, generate_password_hash(secrets.token_urlsafe(32)), branch, semester, phone,
+                filename, pending_profile['sub'], pending_profile['email'],
+            ))
+            conn.execute(
+                'INSERT INTO login_activity (user_id, role, login_at) VALUES (?, ?, ?)',
+                (user_id, 'student', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+            )
+            conn.commit()
+    except sqlite3.IntegrityError:
+        return jsonify({'status': 'error', 'message': 'This Google account or roll number is already registered.'}), 400
+
+    session.clear()
+    session['user_id'], session['name'], session['role'] = user_id, name, 'student'
+    return jsonify({'status': 'success', 'redirect_url': url_for('student_dashboard')})
 
 @app.route('/register')
 def register_page():
@@ -909,47 +1163,118 @@ def register_page():
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
-    if request.method == 'POST':
-        userid = request.form.get('userid').strip().upper()
-        phone = request.form.get('phone').strip()
-        new_password = request.form.get('new_password')
-        
+    if request.method != 'POST':
+        return render_template('forgot_password.html')
+
+    action = request.form.get('action', 'phone_reset')
+    userid = request.form.get('userid', '').strip().upper()
+    new_password = request.form.get('new_password', '')
+
+    if action == 'request_email_otp':
+        email = normalize_email_address(request.form.get('email'))
+        if not userid or not email:
+            return render_template('forgot_password.html', error="Enter your roll number and registered email address.", mode='email')
+
         with get_db_connection() as conn:
-            user = conn.execute("SELECT id FROM users WHERE id=? AND phone=?", (userid, phone)).fetchone()
-            if user:
-                conn.execute("UPDATE users SET password=? WHERE id=?", (generate_password_hash(new_password), userid))
-                conn.commit()
-                return render_template('login.html', success="Password reset successful! Please login.")
-            else:
-                return render_template('forgot_password.html', error="Identity verification failed.")
-    return render_template('forgot_password.html')
+            user = conn.execute(
+                """
+                SELECT id, email, google_email, recovery_methods, google_sub
+                FROM users
+                WHERE id=? AND (email=? COLLATE NOCASE OR google_email=? COLLATE NOCASE)
+                """,
+                (userid, email, email),
+            ).fetchone()
+
+        # Google accounts already provide a verified email, so email recovery is enabled for them automatically.
+        email_recovery_enabled = user and (bool(user['google_sub']) or 'email' in selected_recovery_methods(user['recovery_methods']))
+        if not email_recovery_enabled:
+            return render_template('forgot_password.html', error="Email recovery is not available for this account. Choose phone verification or contact your administrator.", mode='email')
+
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        try:
+            send_password_reset_otp(email, code)
+        except (OSError, smtplib.SMTPException, RuntimeError):
+            app.logger.exception('Unable to send password reset email')
+            return render_template('forgot_password.html', error="We could not send a reset email right now. Please try phone verification or contact your administrator.", mode='email')
+
+        session['password_reset_otp'] = {
+            'user_id': userid,
+            'email': email,
+            'code_hash': generate_password_hash(code),
+            'expires_at': (datetime.utcnow() + timedelta(minutes=10)).isoformat(),
+            'attempts': 0,
+        }
+        return render_template('forgot_password.html', mode='otp', userid=userid, email=email)
+
+    if action == 'confirm_email_otp':
+        otp_session = session.get('password_reset_otp') or {}
+        code = request.form.get('otp', '').strip()
+        if not otp_session or not code or len(new_password) < 8:
+            return render_template('forgot_password.html', error="Enter the six-digit code and a password with at least 8 characters.", mode='otp', userid=otp_session.get('user_id'), email=otp_session.get('email'))
+
+        expired = datetime.utcnow() > datetime.fromisoformat(otp_session['expires_at'])
+        attempts = int(otp_session.get('attempts', 0))
+        if expired or attempts >= 5 or not check_password_hash(otp_session['code_hash'], code):
+            otp_session['attempts'] = attempts + 1
+            session['password_reset_otp'] = otp_session
+            return render_template('forgot_password.html', error="That code is invalid or expired. Request a new code and try again.", mode='email')
+
+        with get_db_connection() as conn:
+            conn.execute("UPDATE users SET password=? WHERE id=?", (generate_password_hash(new_password), otp_session['user_id']))
+            conn.commit()
+        session.pop('password_reset_otp', None)
+        return render_template('login.html', success="Password reset successful! Please login.")
+
+    phone = request.form.get('phone', '').strip()
+    if not userid or not phone or len(new_password) < 8:
+        return render_template('forgot_password.html', error="Enter your ID, phone number, and a password with at least 8 characters.")
+
+    with get_db_connection() as conn:
+        user = conn.execute("SELECT id, recovery_methods FROM users WHERE id=? AND phone=?", (userid, phone)).fetchone()
+        if user and ('phone' in selected_recovery_methods(user['recovery_methods']) or not user['recovery_methods']):
+            conn.execute("UPDATE users SET password=? WHERE id=?", (generate_password_hash(new_password), userid))
+            conn.commit()
+            return render_template('login.html', success="Password reset successful! Please login.")
+    return render_template('forgot_password.html', error="Identity verification failed or phone recovery is not enabled for this account.")
 
 @app.route('/register_user', methods=['POST'])
 def register_user():
     name = request.form.get('name', '').strip()
     userid = request.form.get('userid', '').strip().upper()
+    email = normalize_email_address(request.form.get('email'))
     branch = request.form.get('branch', '').strip()
     semester = request.form.get('semester', '').strip()
     phone = request.form.get('phone', '').strip()
     password = request.form.get('password', '')
     file = request.files.get('profile_pic')
+    recovery_methods = sorted(set(request.form.getlist('recovery_methods')) & {'phone', 'email'})
 
     if not name:
         return jsonify({"status": "error", "message": "Full Name is required."}), 400
     if not userid:
         return jsonify({"status": "error", "message": "Roll Number is required."}), 400
+    if not email:
+        return jsonify({"status": "error", "message": "Enter a valid email address."}), 400
     if not branch:
         return jsonify({"status": "error", "message": "Branch is required."}), 400
     if not semester:
         return jsonify({"status": "error", "message": "Semester is required."}), 400
+    if not is_valid_semester(semester):
+        return jsonify({"status": "error", "message": "Semester must be in the format 1-1 to 4-2."}), 400
     if not phone:
         return jsonify({"status": "error", "message": "Phone Number is required."}), 400
     if not password:
         return jsonify({"status": "error", "message": "Password is required."}), 400
+    if len(password) < 8:
+        return jsonify({"status": "error", "message": "Password must contain at least 8 characters."}), 400
+    if not recovery_methods:
+        return jsonify({"status": "error", "message": "Choose at least one password recovery method."}), 400
     if not file or not file.filename:
         return jsonify({"status": "error", "message": "Profile photo is required."}), 400
     if not allowed_file(file.filename):
         return jsonify({"status": "error", "message": "Profile photo must be PNG, JPG, or JPEG."}), 400
+    if not is_valid_profile_image(file):
+        return jsonify({"status": "error", "message": "Profile photo must be a valid image file."}), 400
 
     if not re.match(r"^[A-Z0-9]{10}$", userid):
         return jsonify({"status": "error", "message": "Roll Number must be exactly 10 alphanumeric characters."}), 400
@@ -958,6 +1283,8 @@ def register_user():
         with get_db_connection() as conn:
             if conn.execute("SELECT id FROM users WHERE id=?", (userid,)).fetchone():
                 return jsonify({"status": "error", "message": "UserID already exists!"}), 400
+            if conn.execute("SELECT id FROM users WHERE email=? COLLATE NOCASE OR google_email=?", (email, email)).fetchone():
+                return jsonify({"status": "error", "message": "An account already exists for this email address."}), 400
             
             filename = secure_filename(f"{userid}_profile.{file.filename.rsplit('.', 1)[1]}")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
@@ -965,9 +1292,9 @@ def register_user():
 
             hashed_pwd = generate_password_hash(password)
             conn.execute("""
-                INSERT INTO users (id, name, password, role, branch, semester, phone, profile_pic) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (userid, name, hashed_pwd, "student", branch, semester, phone, pic_filename))
+                INSERT INTO users (id, name, password, role, branch, semester, phone, profile_pic, email, recovery_methods)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (userid, name, hashed_pwd, "student", branch, semester, phone, pic_filename, email, ','.join(recovery_methods)))
             conn.commit()
         return jsonify({"status": "success", "message": "User created successfully!"})
     except Exception as e:
@@ -1160,6 +1487,8 @@ def update_student_profile():
             if file and file.filename:
                 if not allowed_file(file.filename):
                     return jsonify({"status": "error", "message": "Profile picture must be PNG, JPG, or JPEG."}), 400
+                if not is_valid_profile_image(file):
+                    return jsonify({"status": "error", "message": "Profile picture must be a valid image file."}), 400
                 extension = file.filename.rsplit('.', 1)[1].lower()
                 filename = secure_filename(f"{session['user_id']}_profile.{extension}")
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
@@ -1461,12 +1790,15 @@ def admin_announce():
 def update_exam_settings():
     if session.get('role') != 'admin':
         return jsonify({"status": "error"}), 403
-    one_attempt_only = 1 if request.form.get('one_attempt_only') == 'on' else 0
-    retake_allowed = 1 if request.form.get('retake_allowed') == 'on' else 0
-    max_attempts = max(1, int(request.form.get('max_attempts', 1) or 1))
-    cooldown_minutes = max(0, int(request.form.get('cooldown_minutes', 0) or 0))
-    face_match_threshold = min(0.99, max(0.1, float(request.form.get('face_match_threshold', 0.72) or 0.72)))
-    exam_duration_minutes = max(10, int(request.form.get('exam_duration_minutes', 60) or 60))
+    try:
+        one_attempt_only = 1 if request.form.get('one_attempt_only') == 'on' else 0
+        retake_allowed = 1 if request.form.get('retake_allowed') == 'on' else 0
+        max_attempts = min(20, max(1, int(request.form.get('max_attempts', 1) or 1)))
+        cooldown_minutes = min(10080, max(0, int(request.form.get('cooldown_minutes', 0) or 0)))
+        face_match_threshold = min(0.99, max(0.1, float(request.form.get('face_match_threshold', 0.72) or 0.72)))
+        exam_duration_minutes = min(300, max(10, int(request.form.get('exam_duration_minutes', 60) or 60)))
+    except ValueError:
+        return jsonify({"status": "error", "message": "Exam settings must contain valid numbers."}), 400
     with get_db_connection() as conn:
         conn.execute("""
             UPDATE exam_settings
@@ -1482,7 +1814,10 @@ def update_exam_settings():
 def add_question_bank_entry():
     if session.get('role') != 'admin':
         return jsonify({"status": "error"}), 403
-    year_group = int(request.form.get('year_group', 1))
+    try:
+        year_group = int(request.form.get('year_group', 1))
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "Invalid year group."}), 400
     section_key = request.form.get('section_key', 'section_a')
     topic = request.form.get('topic', '').strip() or 'General'
     difficulty = request.form.get('difficulty', '').strip() or 'medium'
@@ -1490,6 +1825,8 @@ def add_question_bank_entry():
     answer_text = request.form.get('answer_text', '').strip()
     explanation = request.form.get('explanation', '').strip()
     raw_options = request.form.get('options', '').strip()
+    if year_group not in {1, 2, 3, 4} or section_key not in SECTION_ORDER:
+        return jsonify({"status": "error", "message": "Invalid question bank section."}), 400
     if not question_text or not answer_text:
         return jsonify({"status": "error", "message": "Question and answer are required."}), 400
     options = [item.strip() for item in raw_options.split('|') if item.strip()]
@@ -1928,7 +2265,9 @@ def handle_disconnect():
 
 @socketio.on('exam_status')
 def handle_exam_status(data):
-    sid = data.get('student_id') or data.get('student_info', 'Unknown').split(' - ')[0]
+    sid = get_socket_student_id()
+    if not sid:
+        return
     refresh_live_exam(
         sid,
         student_name=data.get('student_name', ''),
@@ -1945,8 +2284,10 @@ def handle_exam_status(data):
 
 @socketio.on('video_frame')
 def handle_frame(data):
+    sid = get_socket_student_id()
+    if not sid:
+        return
     model = get_model()
-    sid = data.get('student_info', 'Unknown').split(' - ')[0]
     try:
         header, encoded = data['image'].split(",", 1)
         nparr = np.frombuffer(base64.b64decode(encoded), np.uint8)
@@ -1967,7 +2308,16 @@ def handle_frame(data):
         face_count = len(faces)
         results = None
         if model is not None:
-            results = model(frame, verbose=False, conf=0.2, imgsz=min(320, DETECTION_FRAME_WIDTH), max_det=6)[0]
+            tracked_labels = {'person', *FORBIDDEN_OBJECTS}
+            tracked_classes = [index for index, label in model.names.items() if label in tracked_labels]
+            results = model(
+                frame,
+                verbose=False,
+                classes=tracked_classes,
+                conf=0.16,
+                imgsz=min(640, DETECTION_FRAME_WIDTH),
+                max_det=8,
+            )[0]
         alerts, people = [], 0
         current = ACTIVE_EXAMS.get(sid, {})
         now = datetime.now()
@@ -2031,7 +2381,9 @@ def handle_frame(data):
 
 @socketio.on('audio_violation')
 def handle_audio(data):
-    sid = data.get('student_info', 'Unknown').split(' - ')[0]
+    sid = get_socket_student_id()
+    if not sid:
+        return
     alert_payload = create_violation_record(
         sid,
         "Loud Noise Detected",
@@ -2042,7 +2394,9 @@ def handle_audio(data):
 
 @socketio.on('tab_switch')
 def handle_tab_switch(data):
-    sid = data.get('student_info', 'Unknown').split(' - ')[0]
+    sid = get_socket_student_id()
+    if not sid:
+        return
     reason = data.get('msg', "Tab Switch / Focus Lost")
     alert_payload = create_violation_record(
         sid,

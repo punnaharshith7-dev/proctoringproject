@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Profile</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        document.documentElement.dataset.theme = localStorage.getItem('portal-theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    </script>
     <link rel="stylesheet" href="{{ url_for('static', filename='tilt-effects.css') }}">
     <script src="{{ url_for('static', filename='tilt-effects.js') }}" defer></script>
     <style>
@@ -23,14 +26,33 @@
             --error-text: #c53d62;
         }
 
+        html[data-theme='dark'] {
+            --primary: #4ee6ff;
+            --primary-dark: #8ca4ff;
+            --bg: #061426;
+            --panel: rgba(7, 20, 39, 0.88);
+            --text: #eaf3ff;
+            --muted: #a7b6cb;
+            --border: rgba(180, 214, 255, 0.18);
+            --input-bg: rgba(255,255,255,0.055);
+            --success-bg: rgba(114,244,200,0.12);
+            --success-text: #72f4c8;
+            --error-bg: rgba(255,131,157,0.12);
+            --error-text: #ffb6c5;
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background: linear-gradient(180deg, #f5f9ff 0%, #e8f0fb 100%); color: var(--text); min-height: 100vh; padding: 28px 16px; }
+        body { background: radial-gradient(circle at 12% 10%, rgba(40,148,239,.18), transparent 24rem), linear-gradient(145deg, #f7fbff 0%, #e9f3ff 100%); color: var(--text); min-height: 100vh; padding: 28px 16px; }
+        html[data-theme='dark'] body { background: radial-gradient(circle at 12% 10%, rgba(61,168,255,.27), transparent 24rem), radial-gradient(circle at 88% 82%, rgba(135,87,255,.18), transparent 28rem), linear-gradient(130deg, #07192f 0%, #071126 45%, #100d2d 100%); }
         .shell { max-width: 900px; margin: 0 auto; }
-        .back-link { display: inline-flex; align-items: center; gap: 8px; color: var(--primary-dark); text-decoration: none; font-weight: 600; margin-bottom: 18px; }
-        .card { background: var(--panel); border-radius: 28px; box-shadow: 0 18px 44px rgba(15, 44, 77, 0.08); padding: 28px; }
+        .page-actions { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px; }
+        .back-link { display: inline-flex; align-items: center; gap: 8px; color: var(--primary-dark); text-decoration: none; font-weight: 600; }
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 28px; box-shadow: 0 18px 44px rgba(15, 44, 77, 0.08); padding: 28px; }
+        html[data-theme='dark'] .card { box-shadow: 0 28px 80px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.06); backdrop-filter: blur(24px); }
         .card-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 24px; }
         .card-head p { color: var(--muted); margin-top: 8px; line-height: 1.6; }
         .profile-band { display: flex; align-items: center; gap: 18px; padding: 18px; border-radius: 22px; background: linear-gradient(135deg, rgba(35, 166, 213, 0.12), rgba(22, 125, 161, 0.08)); margin-bottom: 24px; }
+        html[data-theme='dark'] .profile-band { background: linear-gradient(135deg, rgba(78,230,255,.13), rgba(140,164,255,.08)); }
         .avatar { width: 88px; height: 88px; border-radius: 50%; overflow: hidden; background: rgba(35, 166, 213, 0.14); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .avatar-fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: var(--primary-dark); }
@@ -50,10 +72,12 @@
         .btn.secondary { background: rgba(137, 160, 188, 0.2); color: var(--text); }
         .btn.primary { background: var(--primary); color: #fff; }
         .btn.primary:disabled { opacity: 0.7; cursor: wait; }
+        .theme-toggle { border:1px solid var(--border); border-radius:14px; padding:10px 14px; color:var(--text); background:var(--input-bg); cursor:pointer; font-weight:600; }
 
         @media (max-width: 720px) {
             .card { padding: 20px; border-radius: 22px; }
             .card-head, .profile-band, .actions { flex-direction: column; }
+            .page-actions { align-items:flex-start; flex-direction:column; }
             .grid { grid-template-columns: 1fr; }
             .actions .btn { width: 100%; text-align: center; }
         }
@@ -61,7 +85,7 @@
 </head>
 <body>
     <div class="shell">
-        <a class="back-link" href="/student_dashboard">Back to dashboard</a>
+        <div class="page-actions"><a class="back-link" href="/student_dashboard">Back to dashboard</a><button class="theme-toggle" type="button" onclick="toggleTheme()">Dark Mode</button></div>
 
         <div class="card">
             <div class="card-head">
@@ -138,6 +162,13 @@
     </div>
 
     <script>
+        function toggleTheme() {
+            const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = nextTheme;
+            localStorage.setItem('portal-theme', nextTheme);
+            document.querySelector('.theme-toggle').textContent = nextTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
+        }
+        document.querySelector('.theme-toggle').textContent = document.documentElement.dataset.theme === 'dark' ? 'Light Mode' : 'Dark Mode';
         function showMessage(type, message) {
             const box = document.getElementById('profile-message');
             box.className = `message ${type}`;

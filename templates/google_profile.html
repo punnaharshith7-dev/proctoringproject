@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProctorX | Create Account</title>
+    <title>ProctorX | Complete Google Profile</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-auth.css', v='3') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-auth.css', v='4') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-dialog.css') }}">
     <script src="{{ url_for('static', filename='proctorx-dialog.js') }}" defer></script>
 </head>
@@ -15,25 +15,26 @@
     <span class="orb orb-one"></span><span class="orb orb-two"></span><span class="orb orb-three"></span>
     <main class="auth-layout registration-layout">
         <section class="auth-aside">
+            <div class="scan-lines" aria-hidden="true"></div>
             <a href="/login" class="brand" aria-label="ProctorX home"><img class="brand-logo" src="{{ url_for('static', filename='proctorx-logo.png', v='3') }}" alt=""><span>Proctor<em>X</em></span></a>
             <div class="aside-copy">
-                <div class="aside-kicker">Set up your profile</div>
-                <h1>Your next assessment starts here.</h1>
-                <p>Create a verified student profile once. Your profile photo is used to make face verification more reliable during every secure attempt.</p>
+                <div class="aside-kicker">Google account verified</div>
+                <h1>Finish your student profile.</h1>
+                <p>Your Google email is protected and cannot be changed here. Complete the assessment details below to activate your ProctorX account.</p>
             </div>
-            <div class="assurance"><span class="assurance-dot"></span>Profile data stays linked to your secure account</div>
+            <div class="assurance"><span class="assurance-dot"></span><span class="status-wave" aria-hidden="true"><i></i><i></i><i></i></span>Verified Google identity linked securely</div>
         </section>
         <section class="auth-content">
             <div class="auth-card">
-                <div class="form-eyebrow">Student registration</div>
-                <h2>Create your account</h2>
-                <p class="form-intro">Use your official roll number and choose the semester you are currently studying.</p>
-                <form id="regForm" enctype="multipart/form-data">
+                <div class="form-eyebrow">One last step</div>
+                <h2>Complete your account</h2>
+                <p class="form-intro">Your name and roll number remain editable. The verified Google email is locked to prevent account misuse.</p>
+                <form id="google-profile-form" enctype="multipart/form-data">
+                    <div class="field"><label for="google-email">Verified Google email</label><input id="google-email" type="email" value="{{ google_profile.email }}" readonly aria-readonly="true"></div>
                     <div class="form-grid">
-                        <div class="field"><label for="name">Full name</label><input id="name" type="text" name="name" placeholder="Your full name" required></div>
+                        <div class="field"><label for="name">Full name</label><input id="name" type="text" name="name" value="{{ google_profile.name }}" required></div>
                         <div class="field"><label for="userid">Roll number</label><input id="userid" type="text" name="userid" maxlength="10" placeholder="10 characters" required></div>
                     </div>
-                    <div class="field"><label for="email">Email address</label><input id="email" type="email" name="email" placeholder="you@example.com" autocomplete="email" required></div>
                     <div class="branch-section">
                         <p>Select your branch</p>
                         <div class="branch-grid">
@@ -48,46 +49,29 @@
                         <div class="field"><label for="semester">Current semester</label><select id="semester" name="semester" required><option value="" selected disabled>Select semester</option><option value="1-1">1st year, semester 1</option><option value="1-2">1st year, semester 2</option><option value="2-1">2nd year, semester 1</option><option value="2-2">2nd year, semester 2</option><option value="3-1">3rd year, semester 1</option><option value="3-2">3rd year, semester 2</option><option value="4-1">4th year, semester 1</option><option value="4-2">4th year, semester 2</option></select></div>
                         <div class="field"><label for="phone">Phone number</label><input id="phone" type="text" name="phone" placeholder="Registered phone number" required></div>
                     </div>
-                    <div class="field"><label for="password">Create password</label><input id="password" type="password" name="password" placeholder="At least 8 characters" oninput="checkStrength(this.value)" required></div>
-                    <div class="meter-container"><div id="strength-bar"></div></div>
-                    <button class="text-button suggest-link" type="button" onclick="suggestPassword()">Suggest a strong password</button>
-                    <div class="branch-section recovery-section">
-                        <p>Choose password recovery methods</p>
-                        <div class="branch-grid">
-                            <label><input type="checkbox" name="recovery_methods" value="phone" checked> Verify with registered phone</label>
-                            <label><input type="checkbox" name="recovery_methods" value="email" checked> Receive OTP by email</label>
-                        </div>
-                    </div>
                     <div class="photo-section">
                         <p>Profile photo required for face verification</p>
                         <div class="photo-actions"><input type="file" id="profile-pic-input" name="profile_pic" accept="image/png,image/jpeg" hidden><button type="button" class="photo-btn" onclick="profilePicInput.click()">Upload photo</button><button type="button" class="photo-btn" onclick="openCameraModal()">Use camera</button></div>
                         <div id="photo-file-name" class="photo-name">Upload a clear, front-facing image.</div><img id="photo-preview" class="photo-preview" alt="Selected profile preview">
                     </div>
-                    <button class="primary-button" type="submit">Create ProctorX account</button>
+                    <button class="primary-button" type="submit">Activate ProctorX account</button>
                 </form>
-                <div class="form-footer">Already registered? <a href="/login">Back to sign in</a></div>
+                <div class="form-footer"><a href="/login">Use a different sign-in method</a></div>
             </div>
         </section>
     </main>
     <div id="camera-modal"><div class="camera-card"><h3>Capture profile photo</h3><p>Keep your face centered in a bright, clear frame.</p><video id="camera-stream" autoplay playsinline muted></video><canvas id="camera-canvas" hidden></canvas><div class="camera-actions"><button type="button" class="photo-btn" onclick="capturePhoto()">Capture photo</button><button type="button" class="photo-btn" onclick="closeCameraModal()">Cancel</button></div></div></div>
     <script>
         let cameraStream = null;
-        const profilePicInput = document.getElementById('profile-pic-input');
-        const photoPreview = document.getElementById('photo-preview');
-        const photoFileName = document.getElementById('photo-file-name');
-        const cameraModal = document.getElementById('camera-modal');
-        const cameraVideo = document.getElementById('camera-stream');
-        const cameraCanvas = document.getElementById('camera-canvas');
+        const profilePicInput = document.getElementById('profile-pic-input'); const photoPreview = document.getElementById('photo-preview'); const photoFileName = document.getElementById('photo-file-name'); const cameraModal = document.getElementById('camera-modal'); const cameraVideo = document.getElementById('camera-stream'); const cameraCanvas = document.getElementById('camera-canvas');
         document.querySelectorAll('.branch-cb').forEach((checkbox) => checkbox.addEventListener('change', () => { if (checkbox.checked) document.querySelectorAll('.branch-cb').forEach((other) => { if (other !== checkbox) other.checked = false; }); }));
         document.getElementById('userid').addEventListener('input', function () { this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
-        function checkStrength(password) { let score = 0; if (password.length >= 8) score += 25; if (/[A-Z]/.test(password)) score += 25; if (/[0-9]/.test(password)) score += 25; if (/[^A-Za-z0-9]/.test(password)) score += 25; const bar = document.getElementById('strength-bar'); bar.style.width = `${score}%`; bar.style.background = score < 50 ? '#ff839d' : score < 100 ? '#ffd36c' : '#72f4c8'; }
-        function suggestPassword() { const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'; const password = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join(''); document.getElementById('password').value = password; checkStrength(password); }
         function updatePhotoPreview(file, label) { if (!file) return; photoFileName.textContent = label || file.name; const reader = new FileReader(); reader.onload = () => { photoPreview.src = reader.result; photoPreview.style.display = 'block'; }; reader.readAsDataURL(file); }
         profilePicInput.addEventListener('change', () => updatePhotoPreview(profilePicInput.files[0]));
         async function openCameraModal() { try { cameraStream = await navigator.mediaDevices.getUserMedia({ video: true }); cameraVideo.srcObject = cameraStream; cameraModal.style.display = 'flex'; } catch { await proctorxAlert('Camera access was denied or is unavailable on this device.', { type: 'warning', title: 'Camera access unavailable' }); } }
         function closeCameraModal() { if (cameraStream) cameraStream.getTracks().forEach((track) => track.stop()); cameraStream = null; cameraVideo.srcObject = null; cameraModal.style.display = 'none'; }
         function capturePhoto() { if (!cameraVideo.videoWidth) return; cameraCanvas.width = cameraVideo.videoWidth; cameraCanvas.height = cameraVideo.videoHeight; cameraCanvas.getContext('2d').drawImage(cameraVideo, 0, 0); cameraCanvas.toBlob((blob) => { if (!blob) return; const file = new File([blob], 'profile-photo.jpg', { type: 'image/jpeg' }); const transfer = new DataTransfer(); transfer.items.add(file); profilePicInput.files = transfer.files; updatePhotoPreview(file, 'Photo captured from camera'); closeCameraModal(); }, 'image/jpeg', .92); }
-        document.getElementById('regForm').addEventListener('submit', async (event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); if (!formData.get('branch')) return proctorxAlert('Select one branch before creating your account.', { type: 'warning', title: 'Branch required' }); if (!formData.getAll('recovery_methods').length) return proctorxAlert('Choose at least one password recovery method.', { type: 'warning', title: 'Recovery method required' }); if (!profilePicInput.files.length) return proctorxAlert('Upload or capture a profile photo for face verification.', { type: 'warning', title: 'Profile photo required' }); const response = await fetch('/register_user', { method: 'POST', body: formData }); const data = await response.json(); await proctorxAlert(data.message, { type: data.status === 'success' ? 'success' : 'danger', title: data.status === 'success' ? 'Account created' : 'Registration could not continue' }); if (data.status === 'success') window.location.href = '/login'; });
+        document.getElementById('google-profile-form').addEventListener('submit', async (event) => { event.preventDefault(); const formData = new FormData(event.currentTarget); if (!formData.get('branch')) return proctorxAlert('Select one branch before activating your account.', { type: 'warning', title: 'Branch required' }); if (!profilePicInput.files.length) return proctorxAlert('Upload or capture a profile photo for face verification.', { type: 'warning', title: 'Profile photo required' }); const response = await fetch('/auth/google/complete-profile', { method: 'POST', body: formData }); const data = await response.json(); if (data.status !== 'success') return proctorxAlert(data.message || 'Your profile could not be created.', { type: 'danger', title: 'Profile setup failed' }); await proctorxAlert('Your verified Google account is now linked to ProctorX.', { type: 'success', title: 'Account activated' }); window.location.href = data.redirect_url; });
         window.addEventListener('beforeunload', closeCameraModal);
     </script>
 </body>

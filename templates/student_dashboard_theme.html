@@ -15,27 +15,28 @@
     </script>
     <style>
         :root {
-            --primary: #23a6d5;
-            --sidebar: #1e1e2f;
-            --bg: #f4f7f6;
-            --danger: #e73c7e;
-            --panel: #ffffff;
-            --text: #1f2a36;
-            --muted: #66768d;
-            --nav-muted: #aab2c2;
-            --card-border: #f0f0f0;
-            --locked-bg: #fafafa;
-            --lock-badge-bg: #eee;
-            --lock-badge-text: #888;
-            --input-bg: #f9fbff;
-            --input-border: #d9e3ef;
-            --overlay: rgba(14, 22, 34, 0.55);
+            --primary: #167fe0;
+            --sidebar: #0b2342;
+            --bg: #edf5ff;
+            --danger: #d84d70;
+            --panel: rgba(255,255,255,0.84);
+            --text: #12253c;
+            --muted: #60738d;
+            --nav-muted: #c3d5e9;
+            --card-border: rgba(93,132,178,0.2);
+            --locked-bg: rgba(20,68,116,0.045);
+            --lock-badge-bg: rgba(20,68,116,0.08);
+            --lock-badge-text: #60738d;
+            --input-bg: #f7fbff;
+            --input-border: rgba(93,132,178,0.24);
+            --overlay: rgba(6,23,45,0.5);
         }
 
         html[data-theme='dark'] {
-            --sidebar: #0d182b;
-            --bg: #08131f;
-            --panel: #111e2d;
+            --primary: #4ee6ff;
+            --sidebar: #071126;
+            --bg: #061426;
+            --panel: rgba(7, 20, 39, 0.78);
             --text: #eef4ff;
             --muted: #9eb0c6;
             --nav-muted: #93a2b8;
@@ -48,11 +49,13 @@
             --overlay: rgba(3, 8, 15, 0.74);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; }
-        body { background: var(--bg); display: flex; min-height: 100vh; height: 100vh; color: var(--text); overflow: hidden; }
+        body { background: radial-gradient(circle at 12% 10%, rgba(40,148,239,.18), transparent 24rem), radial-gradient(circle at 88% 82%, rgba(51,197,210,.12), transparent 28rem), linear-gradient(145deg, #f7fbff 0%, #edf5ff 52%, #e4effd 100%); display: flex; min-height: 100vh; height: 100vh; color: var(--text); overflow: hidden; }
+        html[data-theme='dark'] body { background: radial-gradient(circle at 14% 12%, rgba(61,168,255,.24), transparent 23rem), radial-gradient(circle at 86% 82%, rgba(135,87,255,.18), transparent 28rem), linear-gradient(130deg, #07192f 0%, #071126 45%, #100d2d 100%); }
 
-        #side-nav { width: 280px; background: var(--sidebar); color: white; padding: 30px 20px; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; overflow-y: auto; }
+        #side-nav { width: 280px; background: linear-gradient(180deg, #0d315d, #081c38); color: white; padding: 30px 20px; position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; overflow-y: auto; border-right:1px solid rgba(180,214,255,.1); }
+        html[data-theme='dark'] #side-nav { background: linear-gradient(180deg, rgba(7,25,47,.96), rgba(7,17,38,.96)); }
         .brand { font-size:1.5rem; font-weight:600; margin-bottom:24px; }
         .nav-link { padding: 15px; color: var(--nav-muted); text-decoration: none; border-radius: 10px; margin-bottom: 10px; display: block; font-weight: 400; }
         .nav-link.active { background: rgba(255,255,255,0.1); color: white; }
@@ -69,7 +72,8 @@
 
         #content { margin-left: 280px; flex: 1; height: 100vh; overflow-y: auto; padding: 40px; }
         .page-subtitle { color: var(--muted); margin-bottom: 30px; }
-        .panel { background: var(--panel); padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .panel { background: var(--panel); padding: 30px; border-radius: 25px; border:1px solid var(--card-border); box-shadow: 0 22px 54px rgba(25,66,109,.12), inset 0 1px 0 rgba(255,255,255,.5); backdrop-filter:blur(20px); }
+        html[data-theme='dark'] .panel { box-shadow: 0 28px 70px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05); }
 
         .exam-card { border: 1px solid var(--card-border); padding: 25px; border-radius: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; background: transparent; }
         .exam-info h3 { color: var(--text); }
@@ -79,7 +83,8 @@
         .locked { opacity: 0.6; background: var(--locked-bg); cursor: not-allowed; }
         .unlocked:hover { border-color: var(--primary); box-shadow: 0 5px 15px rgba(35, 166, 213, 0.1); }
 
-        .btn-start { background: var(--primary); color: white; padding: 12px 30px; border-radius: 50px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 15px rgba(35, 166, 213, 0.2); }
+        .btn-start { background: linear-gradient(100deg, #2cc7e8, #538cff); color: #061426; padding: 12px 30px; border-radius: 50px; text-decoration: none; font-weight: 700; box-shadow: 0 14px 26px rgba(78,183,255,.24); }
+        html[data-theme='dark'] .btn-start { background: linear-gradient(100deg, #4ee6ff, #8ca4ff); }
         .lock-badge { background: var(--lock-badge-bg); padding: 8px 15px; border-radius: 50px; font-size: 0.8rem; color: var(--lock-badge-text); }
 
         .section-block { margin-top: 34px; }
@@ -192,9 +197,14 @@
 
         @media (max-width: 520px) {
             #content { padding: 18px 14px 24px; }
+            #side-nav { padding: 18px 14px; }
+            .nav-link { margin-bottom: 4px; padding: 13px 14px; }
             .exam-card { padding: 18px; }
             .report-link { width: 100%; justify-content: center; }
             .stat-value { font-size: 1.6rem; }
+            #profile-modal { padding: 12px; }
+            .profile-modal-card { max-height: calc(100dvh - 24px); overflow-y: auto; padding: 20px; }
+            .btn-primary, .btn-secondary { min-height: 46px; }
         }
         body.page-ready { opacity: 1; transform: translateY(0); }
         body.page-exit { opacity: 0; transform: translateY(8px); }
