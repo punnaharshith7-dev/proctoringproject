@@ -82,10 +82,12 @@
             .actions .btn { width: 100%; text-align: center; }
         }
     </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='proctorx-ui.css', v='7') }}">
+    <script src="{{ url_for('static', filename='proctorx-ui.js', v='7') }}"></script>
 </head>
 <body>
     <div class="shell">
-        <div class="page-actions"><a class="back-link" href="/student_dashboard">Back to dashboard</a><button class="theme-toggle" type="button" onclick="toggleTheme()">Dark Mode</button></div>
+        <div class="page-actions"><a class="back-link" href="/student_dashboard">Back to dashboard</a></div>
 
         <div class="card">
             <div class="card-head">
@@ -155,20 +157,15 @@
 
                 <div class="actions">
                     <a class="btn secondary" href="/student_dashboard">Cancel</a>
-                    <button type="submit" class="btn primary">Save Profile</button>
+                    <button type="submit" class="btn primary proctorx-btn-loading">Save Profile</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        function toggleTheme() {
-            const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-            document.documentElement.dataset.theme = nextTheme;
-            localStorage.setItem('portal-theme', nextTheme);
-            document.querySelector('.theme-toggle').textContent = nextTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
-        }
-        document.querySelector('.theme-toggle').textContent = document.documentElement.dataset.theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+        
+        
         function showMessage(type, message) {
             const box = document.getElementById('profile-message');
             box.className = `message ${type}`;
@@ -221,3 +218,6 @@
     </script>
 </body>
 </html>
+
+
+

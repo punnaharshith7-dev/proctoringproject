@@ -9,3 +9,5 @@ werkzeug
 Pillow
 google-auth[requests]
 python-dotenv
+firebase-admin
+eventlet

@@ -1,0 +1,235 @@
+/* --- PROCTORX UI OVERHAUL --- */
+
+/* 1. Dark/Light Mode Toggle (dm-01 exact from user) */
+.dm-01__toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  font: inherit;
+}
+
+.dm-01__track {
+  --dur: 0.55s;
+  --ease: cubic-bezier(0.34,1.56,0.64,1);
+  width: 64px;
+  height: 34px;
+  border-radius: 17px;
+  background: #f8f6ff;
+  border: 1.5px solid #e0daff;
+  position: relative;
+  transition:
+    background var(--dur) ease,
+    border-color var(--dur) ease,
+    box-shadow var(--dur) ease;
+}
+
+[data-theme="dark"] .dm-01__track {
+  background: linear-gradient(135deg, #111827, #000000);
+  border-color: #374151;
+  box-shadow:
+    0 0 16px rgba(0,0,0,0.26),
+    0 2px 8px rgba(0,0,0,0.3);
+}
+
+.dm-01__toggle-copy { font-size: .78rem; font-weight: 700; }
+.auth-aside .dm-01__toggle-label { position: absolute; top: 26px; right: 28px; z-index: 2; color: #dceaff; }
+#side-nav .dm-01__toggle-label { width: 100%; justify-content: space-between; padding: 10px 12px; border: 1px solid rgba(255,255,255,.14); border-radius: 14px; background: rgba(255,255,255,.07); color: #fff; }
+body > .dm-01__toggle-label { position: fixed; top: 20px; right: 20px; z-index: 1000; padding: 8px 10px; border: 1px solid rgba(137,160,188,.25); border-radius: 14px; background: rgba(255,255,255,.82); box-shadow: 0 8px 22px rgba(0,0,0,.1); }
+[data-theme="dark"] body > .dm-01__toggle-label { border-color: rgba(255,255,255,.16); background: rgba(8,18,34,.9); color: #eef4ff; }
+
+@media (max-width: 700px) {
+  .auth-aside .dm-01__toggle-label { top: 16px; right: 16px; }
+  body > .dm-01__toggle-label { top: 12px; right: 12px; }
+}
+
+.dm-01__knob {
+  position: absolute;
+  top: 3.5px;
+  left: 3.5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition:
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #1a1530;
+}
+
+[data-theme="dark"] .dm-01__knob {
+  transform: translateX(30px);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+
+.dm-01__knob-icon {
+  transition:
+    opacity var(--dur) ease,
+    transform var(--dur) ease;
+  position: absolute;
+  line-height: 1;
+}
+
+.dm-01__knob-icon--sun {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.dm-01__knob-icon--moon {
+  opacity: 0;
+  transform: scale(0.4) rotate(-90deg);
+}
+
+[data-theme="dark"] .dm-01__knob-icon--sun {
+  opacity: 0;
+  transform: scale(0.4) rotate(90deg);
+}
+
+[data-theme="dark"] .dm-01__knob-icon--moon {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+
+/* 2. Loading Buttons (lb-03 adapted) */
+.proctorx-btn-loading {
+    position: relative;
+    overflow: hidden;
+}
+.proctorx-btn-loading .loading-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: currentColor;
+    width: 100%;
+    transform: translateX(-100%);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.proctorx-btn-loading[data-state="pending"] {
+    pointer-events: none;
+    opacity: 0.8;
+}
+.proctorx-btn-loading[data-state="pending"] .loading-bar {
+    opacity: 1;
+    animation: proctorx-loading-bar 1.5s infinite linear;
+}
+@keyframes proctorx-loading-bar {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(0%); }
+    100% { transform: translateX(100%); }
+}
+
+/* 3. Material 3 FAB (fb-01 adapted) */
+.proctorx-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--portal-primary, #6366f1);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 4px 8px 3px rgba(0,0,0,0.15);
+    transition: box-shadow 0.18s ease, transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+    z-index: 9999;
+}
+.proctorx-fab svg {
+    width: 24px;
+    height: 24px;
+    z-index: 2;
+}
+.proctorx-fab::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.12s linear;
+    z-index: 1;
+}
+.proctorx-fab:hover::before {
+    opacity: 0.08;
+}
+.proctorx-fab:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3), 0 7px 14px 5px rgba(0,0,0,0.16);
+    transform: translateY(-2px);
+}
+.proctorx-fab:active {
+    transform: scale(0.94);
+}
+
+/* 4. SVG Stroke Draw Button (svgb-01 adapted) */
+.proctorx-wobbly {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* background: transparent !important; */
+    border: none;
+    cursor: pointer;
+    padding: 12px 24px;
+    color: var(--portal-primary, #6366f1);
+    font-weight: 600;
+    font-size: 16px;
+    text-decoration: none;
+    z-index: 1;
+}
+.proctorx-wobbly .wobbly-svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    overflow: visible;
+}
+.proctorx-wobbly .wobbly-ghost {
+    opacity: 0.2;
+}
+.proctorx-wobbly .wobbly-p1, .proctorx-wobbly .wobbly-p2 {
+    stroke-dasharray: 1300;
+    stroke-dashoffset: 1300;
+    transition: stroke-dashoffset 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.proctorx-wobbly .wobbly-p2 {
+    transition-delay: 0.15s;
+    opacity: 0.6;
+}
+.proctorx-wobbly:hover .wobbly-p1, .proctorx-wobbly:hover .wobbly-p2 {
+    stroke-dashoffset: 0;
+}
+.proctorx-wobbly-text {
+    position: relative;
+    z-index: 2;
+}
+
+.proctorx-wobbly path {
+    vector-effect: non-scaling-stroke;
+}
+
+
+
+

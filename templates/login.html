@@ -7,7 +7,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-auth.css', v='3') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-auth.css', v='6') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='proctorx-ui.css', v='7') }}">
+    <script src="{{ url_for('static', filename='proctorx-ui.js', v='7') }}"></script>
 </head>
 <body class="auth-page">
     <div class="particle-field" aria-hidden="true"></div><div class="cursor-glow" aria-hidden="true"></div>
@@ -15,7 +17,7 @@
     <main class="auth-layout">
         <section class="auth-aside">
             <div class="scan-lines" aria-hidden="true"></div>
-            <a href="/login" class="brand" aria-label="ProctorX home"><img class="brand-logo" src="{{ url_for('static', filename='proctorx-logo.png', v='3') }}" alt=""><span>Proctor<em>X</em></span></a>
+            <a href="/login" class="brand" aria-label="ProctorX home"><img class="brand-logo" src="{{ url_for('static', filename='proctorx-logo.png', v='6') }}" alt=""><span>Proctor<em>X</em></span></a>
             <div class="aside-copy">
                 <div class="aside-kicker">Smart assessment platform</div>
                 <h1>Confidence in every attempt.</h1>
@@ -37,7 +39,7 @@
                 <form id="student-form" action="/login" method="POST">
                     <div class="field"><label for="student-id">Roll number</label><input id="student-id" type="text" name="user_id" placeholder="Enter your roll number" autocomplete="username" required></div>
                     <div class="field"><label for="student-password">Password</label><div class="password-field"><input id="student-password" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required><button class="password-toggle" type="button" aria-label="Show password" onclick="togglePassword('student-password', this)">◉</button></div></div>
-                    <button class="primary-button" type="submit">Enter student portal</button>
+                    <button class="primary-button proctorx-wobbly proctorx-btn-loading" type="submit">Enter student portal</button>
                     <div class="form-row"><span>Need help accessing your account?</span><a href="/forgot_password">Reset password</a></div>
                     <div class="auth-divider">or continue with</div>
                     <a class="google-signin" href="/auth/google"><span class="google-mark">G</span>Sign in with Google</a>
@@ -45,7 +47,7 @@
                 <form id="admin-form" action="/login" method="POST" class="hidden">
                     <div class="field"><label for="admin-id">Administrator ID</label><input id="admin-id" type="text" name="user_id" placeholder="Enter administrator ID" autocomplete="username" required></div>
                     <div class="field"><label for="admin-password">Password</label><div class="password-field"><input id="admin-password" type="password" name="password" placeholder="Enter your password" autocomplete="current-password" required><button class="password-toggle" type="button" aria-label="Show password" onclick="togglePassword('admin-password', this)">◉</button></div></div>
-                    <button class="primary-button" type="submit">Open command center</button>
+                    <button class="primary-button proctorx-wobbly proctorx-btn-loading" type="submit">Open command center</button>
                     <div class="form-row"><span>Admin access is restricted.</span></div>
                 </form>
                 <div class="form-footer">New to ProctorX? <a href="/register">Create your student account</a></div>

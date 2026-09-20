@@ -422,6 +422,8 @@
             *, body, body.page-ready, body.page-exit { transition:none !important; animation:none !important; transform:none !important; scroll-behavior:auto !important; }
         }
     </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='proctorx-ui.css', v='7') }}">
+    <script src="{{ url_for('static', filename='proctorx-ui.js', v='7') }}"></script>
 </head>
     <body onclick="startAudio()">
     <div id="toast-stack"></div>

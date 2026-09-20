@@ -56,6 +56,8 @@
         .device-alert { position: fixed; inset: 0; background: rgba(231, 60, 126, 0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; animation: pulse 0.4s infinite; }
         @keyframes pulse { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
     </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='proctorx-ui.css', v='7') }}">
+    <script src="{{ url_for('static', filename='proctorx-ui.js', v='7') }}"></script>
 </head>
 <body onclick="startAudio()">
 

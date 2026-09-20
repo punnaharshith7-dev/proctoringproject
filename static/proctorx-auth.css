@@ -237,3 +237,21 @@ body.auth-page::selection { background: rgba(78, 230, 255, .32); }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+[data-theme="light"] {
+    --ink: #0f172a;
+    --muted: #64748b;
+    --panel: rgba(255, 255, 255, 0.9);
+    --line: rgba(0, 0, 0, 0.1);
+    --cyan: #0ea5e9;
+    --blue: #2563eb;
+    --violet: #7c3aed;
+    --danger: #e11d48;
+    --success: #16a34a;
+}
+[data-theme="light"] body.auth-page {
+    background:
+        radial-gradient(circle at 14% 12%, rgba(56, 189, 248, 0.1), transparent 23rem),
+        radial-gradient(circle at 86% 82%, rgba(139, 92, 246, 0.1), transparent 28rem),
+        #f8fafc;
+}

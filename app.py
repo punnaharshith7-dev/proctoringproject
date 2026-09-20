@@ -72,6 +72,10 @@ ADMIN_INITIAL_PASSWORD = os.environ.get("ADMIN_INITIAL_PASSWORD")
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
 GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "").strip()
+FIREBASE_WEB_API_KEY = os.environ.get("FIREBASE_WEB_API_KEY", "").strip()
+FIREBASE_AUTH_DOMAIN = os.environ.get("FIREBASE_AUTH_DOMAIN", "").strip()
+FIREBASE_PROJECT_ID = os.environ.get("FIREBASE_PROJECT_ID", "").strip()
+FIREBASE_SERVICE_ACCOUNT_JSON = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
 SMTP_HOST = os.environ.get("SMTP_HOST", "").strip()
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
 SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "").strip()
@@ -83,6 +87,26 @@ RUN_DEBUG = os.environ.get("FLASK_DEBUG", "").strip().lower() in {"1", "true", "
 # Small objects such as phones disappear at 320px, especially on mobile-camera frames.
 DETECTION_FRAME_WIDTH = max(480, int(os.environ.get("DETECTION_FRAME_WIDTH", "512")))
 MODEL_LOAD_RETRY_SECONDS = max(10, int(os.environ.get("MODEL_LOAD_RETRY_SECONDS", "60")))
+
+# --- Firebase Admin SDK (for phone OTP verification) ---
+FIREBASE_APP = None
+try:
+    import firebase_admin
+    from firebase_admin import credentials as fb_credentials, auth as fb_auth
+    if FIREBASE_SERVICE_ACCOUNT_JSON and Path(FIREBASE_SERVICE_ACCOUNT_JSON).is_file():
+        _cred = fb_credentials.Certificate(FIREBASE_SERVICE_ACCOUNT_JSON)
+        FIREBASE_APP = firebase_admin.initialize_app(_cred)
+        app.logger.info("Firebase Admin SDK initialized from service account file.")
+    elif FIREBASE_PROJECT_ID:
+        FIREBASE_APP = firebase_admin.initialize_app(options={"projectId": FIREBASE_PROJECT_ID})
+        app.logger.info("Firebase Admin SDK initialized with project ID only.")
+    else:
+        app.logger.warning("Firebase Phone Auth is not configured. Set FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_PROJECT_ID in .env.")
+except ImportError:
+    app.logger.warning("firebase-admin package not installed. Phone OTP will not work.")
+except Exception as _fb_err:
+    app.logger.warning("Firebase Admin SDK init failed: %s", _fb_err)
+
 VIOLATION_AUTO_SUBMIT_SCORE = 20
 SECTION_ORDER = ["section_a", "section_b", "section_c"]
 SECTION_LABELS = {
@@ -168,6 +192,19 @@ def send_password_reset_otp(recipient, code):
         smtp.starttls()
         smtp.login(SMTP_USERNAME, SMTP_PASSWORD)
         smtp.send_message(message)
+
+
+def firebase_phone_otp_enabled():
+    return bool(FIREBASE_APP and FIREBASE_WEB_API_KEY and FIREBASE_AUTH_DOMAIN)
+
+
+def verify_firebase_phone_token(id_token_value):
+    """Verify a Firebase ID token and return the phone number."""
+    decoded = fb_auth.verify_id_token(id_token_value, app=FIREBASE_APP)
+    phone = decoded.get("phone_number")
+    if not phone:
+        raise ValueError("Firebase token does not contain a verified phone number.")
+    return phone
 
 
 def get_socket_student_id():
@@ -1064,7 +1101,8 @@ def google_callback():
         token_data = exchange_google_code(code, redirect_uri)
         identity = verify_google_identity(token_data.get('id_token', ''))
     except HTTPError as error:
-        app.logger.warning('Google token exchange failed with HTTP status %s.', error.code)
+        error_body = error.read().decode('utf-8', errors='replace') if error.fp else 'no body'
+        app.logger.warning('Google token exchange failed with HTTP status %s. Response: %s', error.code, error_body)
         return redirect(url_for('login', google_error='Google rejected the OAuth client configuration. Check the Client Secret in your local .env file, then try again.'))
     except URLError:
         app.logger.warning('Google token verification could not reach Google services.')
@@ -1164,7 +1202,9 @@ def register_page():
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method != 'POST':
-        return render_template('forgot_password.html')
+        method = request.args.get('method', '')
+        mode = 'phone' if method == 'phone' else ('email' if method == 'email' else None)
+        return render_template('forgot_password.html', mode=mode)
 
     action = request.form.get('action', 'phone_reset')
     userid = request.form.get('userid', '').strip().upper()
@@ -1225,6 +1265,74 @@ def forgot_password():
         session.pop('password_reset_otp', None)
         return render_template('login.html', success="Password reset successful! Please login.")
 
+    if action == 'request_phone_otp':
+        phone = request.form.get('phone', '').strip()
+        if not userid or not phone:
+            return render_template('forgot_password.html', error="Enter your roll number and registered phone number.", mode='phone')
+
+        if not firebase_phone_otp_enabled():
+            return render_template('forgot_password.html', error="Phone OTP is not configured yet. Use email recovery or contact your administrator.", mode='phone')
+
+        with get_db_connection() as conn:
+            user = conn.execute("SELECT id, phone, recovery_methods FROM users WHERE id=?", (userid,)).fetchone()
+
+        if not user or user['phone'] != phone:
+            return render_template('forgot_password.html', error="Roll number and phone number do not match our records.", mode='phone')
+
+        phone_recovery_ok = 'phone' in selected_recovery_methods(user['recovery_methods']) or not user['recovery_methods']
+        if not phone_recovery_ok:
+            return render_template('forgot_password.html', error="Phone recovery is not enabled for this account. Use email recovery instead.", mode='phone')
+
+        # Store verified user info in session so confirm_phone_otp can use it
+        session['phone_otp_pending'] = {
+            'user_id': userid,
+            'phone': phone,
+            'started_at': datetime.utcnow().isoformat(),
+        }
+        return render_template(
+            'forgot_password.html',
+            mode='phone_otp',
+            userid=userid,
+            phone=phone,
+            firebase_config={
+                'apiKey': FIREBASE_WEB_API_KEY,
+                'authDomain': FIREBASE_AUTH_DOMAIN,
+                'projectId': FIREBASE_PROJECT_ID,
+            },
+        )
+
+    if action == 'confirm_phone_otp':
+        pending = session.get('phone_otp_pending') or {}
+        firebase_id_token = request.form.get('firebase_id_token', '').strip()
+        if not pending or not firebase_id_token or len(new_password) < 8:
+            return render_template('forgot_password.html', error="Session expired or invalid data. Please start over.", mode='phone')
+
+        # Expire after 15 minutes
+        started = datetime.fromisoformat(pending['started_at'])
+        if datetime.utcnow() > started + timedelta(minutes=15):
+            session.pop('phone_otp_pending', None)
+            return render_template('forgot_password.html', error="Phone verification session expired. Please start over.", mode='phone')
+
+        try:
+            verified_phone = verify_firebase_phone_token(firebase_id_token)
+        except Exception as e:
+            app.logger.warning("Firebase phone token verification failed: %s", e)
+            return render_template('forgot_password.html', error="Phone verification failed. Please try again.", mode='phone')
+
+        # Normalize phone numbers for comparison (strip spaces, dashes; compare last 10 digits)
+        stored_digits = re.sub(r'\D', '', pending['phone'])[-10:]
+        verified_digits = re.sub(r'\D', '', verified_phone)[-10:]
+        if stored_digits != verified_digits:
+            app.logger.warning("Phone mismatch: stored=%s verified=%s", pending['phone'], verified_phone)
+            return render_template('forgot_password.html', error="The verified phone number does not match the one on your account.", mode='phone')
+
+        with get_db_connection() as conn:
+            conn.execute("UPDATE users SET password=? WHERE id=?", (generate_password_hash(new_password), pending['user_id']))
+            conn.commit()
+        session.pop('phone_otp_pending', None)
+        return render_template('login.html', success="Password reset successful! Please login.")
+
+    # Fallback: old phone-match reset (when Firebase is not configured)
     phone = request.form.get('phone', '').strip()
     if not userid or not phone or len(new_password) < 8:
         return render_template('forgot_password.html', error="Enter your ID, phone number, and a password with at least 8 characters.")

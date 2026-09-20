@@ -7,15 +7,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-auth.css', v='3') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-auth.css', v='6') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='proctorx-dialog.css') }}">
     <script src="{{ url_for('static', filename='proctorx-dialog.js') }}" defer></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='proctorx-ui.css', v='7') }}">
+    <script src="{{ url_for('static', filename='proctorx-ui.js', v='7') }}"></script>
 </head>
 <body class="auth-page">
     <span class="orb orb-one"></span><span class="orb orb-two"></span><span class="orb orb-three"></span>
     <main class="auth-layout registration-layout">
         <section class="auth-aside">
-            <a href="/login" class="brand" aria-label="ProctorX home"><img class="brand-logo" src="{{ url_for('static', filename='proctorx-logo.png', v='3') }}" alt=""><span>Proctor<em>X</em></span></a>
+            <a href="/login" class="brand" aria-label="ProctorX home"><img class="brand-logo" src="{{ url_for('static', filename='proctorx-logo.png', v='6') }}" alt=""><span>Proctor<em>X</em></span></a>
             <div class="aside-copy">
                 <div class="aside-kicker">Set up your profile</div>
                 <h1>Your next assessment starts here.</h1>
@@ -63,7 +65,7 @@
                         <div class="photo-actions"><input type="file" id="profile-pic-input" name="profile_pic" accept="image/png,image/jpeg" hidden><button type="button" class="photo-btn" onclick="profilePicInput.click()">Upload photo</button><button type="button" class="photo-btn" onclick="openCameraModal()">Use camera</button></div>
                         <div id="photo-file-name" class="photo-name">Upload a clear, front-facing image.</div><img id="photo-preview" class="photo-preview" alt="Selected profile preview">
                     </div>
-                    <button class="primary-button" type="submit">Create ProctorX account</button>
+                    <button class="primary-button proctorx-wobbly proctorx-btn-loading" type="submit">Create ProctorX account</button>
                 </form>
                 <div class="form-footer">Already registered? <a href="/login">Back to sign in</a></div>
             </div>

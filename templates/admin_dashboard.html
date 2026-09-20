@@ -52,6 +52,8 @@
         .btn-clear { background: var(--danger); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; }
         input { padding: 10px; border-radius: 8px; border: 1px solid #ddd; width: 300px; }
     </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='proctorx-ui.css', v='7') }}">
+    <script src="{{ url_for('static', filename='proctorx-ui.js', v='7') }}"></script>
 </head>
 <body>
 
@@ -189,5 +191,12 @@
             }
         }
     </script>
+
+<button class="proctorx-fab" type="button" aria-label="Help" onclick="alert('Support center coming soon!')">
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+        <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+    </svg>
+</button>
+
 </body>
 </html>

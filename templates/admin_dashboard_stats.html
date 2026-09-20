@@ -639,7 +639,46 @@
         @media (prefers-reduced-motion: reduce) {
             body, body.page-ready, body.page-exit { transition: none; transform: none; opacity: 1; }
         }
+        html[data-theme='dark'] {
+            --bg: #08111f;
+            --panel: rgba(14, 27, 45, 0.92);
+            --panel-border: rgba(148, 163, 184, 0.2);
+            --text: #e8eef8;
+            --muted: #a9b7c8;
+            --primary: #65b7ff;
+            --teal: #58d3c7;
+            --gold: #f6c85f;
+            --danger: #f27a92;
+            --shadow: 0 22px 50px rgba(0, 0, 0, 0.32);
+        }
+
+        html[data-theme='dark'] body {
+            background: radial-gradient(circle at top left, rgba(45, 112, 181, 0.22), transparent 28%), #08111f;
+        }
+
+        html[data-theme='dark'] #side-nav {
+            background: linear-gradient(180deg, #111827 0%, #030712 100%);
+        }
+
+        html[data-theme='dark'] .table-wrap,
+        html[data-theme='dark'] .modal-card,
+        html[data-theme='dark'] .profile-card,
+        html[data-theme='dark'] .empty-state,
+        html[data-theme='dark'] input,
+        html[data-theme='dark'] select,
+        html[data-theme='dark'] textarea {
+            background-color: #101c2d;
+            color: var(--text);
+            border-color: var(--panel-border);
+        }
+
+        html[data-theme='dark'] th,
+        html[data-theme='dark'] td {
+            border-color: rgba(148, 163, 184, 0.16);
+        }
     </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='proctorx-ui.css', v='7') }}">
+    <script src="{{ url_for('static', filename='proctorx-ui.js', v='7') }}"></script>
 </head>
 <body>
     <div id="side-nav">
@@ -881,7 +920,7 @@
                         <input id="announcement-message" placeholder="Type a warning or exam notice">
                     </div>
                     <div class="actions" style="display:flex;gap:12px;flex-wrap:wrap;">
-                        <button class="btn-clear" type="button" onclick="sendAnnouncement()">Send Announcement</button>
+                        <button class="btn-clear proctorx-btn-loading" type="button" onclick="sendAnnouncement()">Send Announcement</button>
                         <div class="muted-copy" id="announcement-feedback">Announcements appear in the student exam view as live toasts.</div>
                     </div>
                 </div>
@@ -1024,9 +1063,9 @@
                         <option value="{{ year }}" {% if filters.year_group == (year|string) %}selected{% endif %}>Year {{ year }}</option>
                         {% endfor %}
                     </select>
-                    <button class="btn-clear" type="submit">Apply Filters</button>
-                    <a class="btn-clear" href="{{ url_for('export_admin_data', export_format='csv', branch=filters.branch, semester=filters.semester, date=filters.date, year_group=filters.year_group) }}" style="text-decoration:none;display:inline-flex;justify-content:center;align-items:center;">Export CSV</a>
-                    <a class="btn-clear" href="{{ url_for('export_admin_data', export_format='pdf', branch=filters.branch, semester=filters.semester, date=filters.date, year_group=filters.year_group) }}" style="text-decoration:none;display:inline-flex;justify-content:center;align-items:center;">Export PDF</a>
+                    <button class="btn-clear proctorx-btn-loading" type="submit">Apply Filters</button>
+                    <a class="btn-clear proctorx-btn-loading" href="{{ url_for('export_admin_data', export_format='csv', branch=filters.branch, semester=filters.semester, date=filters.date, year_group=filters.year_group) }}" style="text-decoration:none;display:inline-flex;justify-content:center;align-items:center;">Export CSV</a>
+                    <a class="btn-clear proctorx-btn-loading" href="{{ url_for('export_admin_data', export_format='pdf', branch=filters.branch, semester=filters.semester, date=filters.date, year_group=filters.year_group) }}" style="text-decoration:none;display:inline-flex;justify-content:center;align-items:center;">Export PDF</a>
                 </form>
             </div>
             <div class="panel">
@@ -1103,7 +1142,7 @@
                     <input name="options" placeholder="Options separated by | for MCQ/True-False">
                     <input name="answer_text" placeholder="Correct answer">
                     <textarea name="explanation" placeholder="Explanation or revision note"></textarea>
-                    <div><button type="submit" class="btn-clear">Add Question</button></div>
+                    <div><button type="submit" class="btn-clear proctorx-btn-loading">Add Question</button></div>
                 </form>
                 <br>
                 <table>
@@ -1150,7 +1189,7 @@
                         <input type="number" min="10" name="exam_duration_minutes" value="{{ exam_settings.exam_duration_minutes }}" placeholder="Duration minutes">
                         <input type="number" min="0.1" max="0.99" step="0.01" name="face_match_threshold" value="{{ exam_settings.face_match_threshold }}" placeholder="Face threshold">
                     </div>
-                    <div><button class="btn-clear" type="submit">Save Exam Settings</button></div>
+                    <div><button class="btn-clear proctorx-btn-loading" type="submit">Save Exam Settings</button></div>
                 </form>
             </div>
         </div>
@@ -1167,7 +1206,7 @@
                 </div>
                 <div class="search-row">
                     <input type="text" id="searchRoll" placeholder="Enter Roll Number">
-                    <button class="btn-clear" onclick="searchStudent()">Search Student</button>
+                    <button class="btn-clear proctorx-btn-loading" onclick="searchStudent()">Search Student</button>
                 </div>
             </div>
 
@@ -1342,7 +1381,7 @@
                     <div class="muted-copy">Mic: ${exam.mic_status || 'unknown'} | Violations: ${exam.violation_count || 0}</div>
                     <div class="muted-copy">Risk: ${exam.risk_score || 0} (${exam.risk_level || 'Low'}) | Face Verified: ${exam.face_verified ? 'Yes' : 'No'}</div>
                     <div class="actions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
-                        <button class="btn-clear" type="button" onclick="quickWarn('${exam.student_id}')">Send Warning</button>
+                        <button class="btn-clear proctorx-btn-loading" type="button" onclick="quickWarn('${exam.student_id}')">Send Warning</button>
                     </div>
                     ${exam.current_frame ? `<img class="thumb" src="${exam.current_frame.startsWith('data:') ? exam.current_frame : `/static/${exam.current_frame}`}" alt="Live frame">` : ''}
                 </div>
@@ -1530,5 +1569,12 @@
             else enterPage();
         })();
     </script>
+
+<button class="proctorx-fab" type="button" aria-label="Help" onclick="alert('Support center coming soon!')">
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+        <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+    </svg>
+</button>
+
 </body>
 </html>
