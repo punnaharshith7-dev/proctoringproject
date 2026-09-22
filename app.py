@@ -2513,5 +2513,10 @@ def handle_tab_switch(data):
     )
     emit('cheat_alert', {'alerts': [alert_payload]}, room=request.sid)
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Simple health check endpoint to verify the service is running."""
+    return jsonify({"status": "healthy"}), 200
+
 if __name__ == '__main__':
     socketio.run(app, debug=RUN_DEBUG, host=RUN_HOST, port=RUN_PORT)
