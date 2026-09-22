@@ -1,0 +1,13 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Dummy Check
+        run: echo "PR is ready to be merged. Render deployment is handled separately."
