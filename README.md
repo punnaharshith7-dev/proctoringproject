@@ -1,6 +1,6 @@
 # ProctorX
 
-This project is now set up as a deployable Flask website.
+This project is now set up as a Deployable Flask website.
 
 ## Run locally
 
