@@ -2518,5 +2518,10 @@ def health_check():
     """Simple health check endpoint to verify the service is running."""
     return jsonify({"status": "healthy"}), 200
 
+@app.route('/api/version', methods=['GET'])
+def get_version():
+    """Return the current version of the application."""
+    return jsonify({"version": "1.0.1", "name": "ProctorX"}), 200
+
 if __name__ == '__main__':
     socketio.run(app, debug=RUN_DEBUG, host=RUN_HOST, port=RUN_PORT)
