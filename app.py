@@ -997,6 +997,22 @@ def build_student_badges(student_results, latest_risk, latest_trend, student_ran
             })
     return badges[:4]
 
+@app.route('/api/health')
+def health_check():
+    """Returns the health status of the application."""
+    status = {
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "db_connected": False
+    }
+    try:
+        with get_db_connection() as conn:
+            conn.execute("SELECT 1")
+            status["db_connected"] = True
+    except Exception:
+        status["status"] = "error"
+    return jsonify(status)
+
 # --- AUTH ROUTES ---
 @app.route('/', methods=['GET', 'POST'])
 @app.route('/login', methods=['GET', 'POST'])
