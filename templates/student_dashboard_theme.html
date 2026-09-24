@@ -495,7 +495,18 @@
             <div class="empty-state">Submit an exam to receive section-wise improvement hints and revision guidance.</div>
             {% endif %}
         </div>
+    <div class="section-block">
+        <h2>Personal Study Notes</h2>
+        <p class="section-copy">Keep track of your study goals and quick reminders. (Saved locally)</p>
+        <div class="panel" style="margin-top: 14px;">
+            <textarea id="study-notes" placeholder="E.g., Review chapter 4 formulas before the next Year 3 attempt..." style="width: 100%; height: 120px; padding: 14px; border-radius: 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text); resize: vertical; margin-bottom: 12px; font-family: inherit; font-size: 0.95rem;"></textarea>
+            <div style="display: flex; justify-content: flex-end; align-items: center; gap: 12px;">
+                <span id="notes-status" style="font-size: 0.85rem; color: #18a07f; display: none;">Saved!</span>
+                <button type="button" class="btn-primary" onclick="saveStudyNotes()" style="padding: 10px 16px;">Save Notes</button>
+            </div>
+        </div>
     </div>
+</div>
 
     <div id="profile-modal" aria-hidden="true">
         <div class="profile-modal-card">
@@ -583,6 +594,24 @@
             const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
             applyTheme(nextTheme);
         }
+
+        // --- Personal Study Notes Logic ---
+        function loadStudyNotes() {
+            const notes = localStorage.getItem('portal-study-notes');
+            if (notes) {
+                document.getElementById('study-notes').value = notes;
+            }
+        }
+        function saveStudyNotes() {
+            const text = document.getElementById('study-notes').value;
+            localStorage.setItem('portal-study-notes', text);
+            const status = document.getElementById('notes-status');
+            status.style.display = 'inline';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+        document.addEventListener('DOMContentLoaded', loadStudyNotes);
 
         function openProfileModal() {
             const modal = document.getElementById('profile-modal');
